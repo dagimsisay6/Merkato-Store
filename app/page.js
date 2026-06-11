@@ -43,7 +43,7 @@ export default function Home() {
       {/* <ShopByCountry /> */}
       <BestSellers />
       <NewArrivals />
-      {/* <WhyChoose /> */}
+      <WhyChoose />
       {/* <Brands /> */}
       {/* <Testimonials /> */}
       {/* <AppPromo /> */}
