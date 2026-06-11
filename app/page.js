@@ -38,16 +38,16 @@ export default function Home() {
       <Hero />
       <TrustTicker />
       <Categories />
-      {/* <FlashSales /> */}
-      {/* <Featured /> */}
-      {/* <ShopByCountry /> */}
-      {/* <BestSellers /> */}
-      {/* <NewArrivals /> */}
-      {/* <WhyChoose /> */}
-      {/* <Brands /> */}
-      {/* <Testimonials /> */}
-      {/* <AppPromo /> */}
-      {/* <Newsletter /> */}
+      <FlashSales />
+      <Featured />
+      <ShopByCountry />
+      <BestSellers />
+      <NewArrivals />
+      <WhyChoose />
+      <Brands />
+      <Testimonials />
+      <AppPromo />
+      <Newsletter />
     </div>
   );
 }
@@ -305,12 +305,34 @@ function Categories() {
 ───────────────────────────────────────────── */
 function Countdown() {
   const [target] = useState(() => Date.now() + 1000 * 60 * 60 * 8 + 1000 * 60 * 23);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(null); // null = not yet mounted
 
   useEffect(() => {
+    setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  // Render placeholder cells until client mounts to avoid hydration mismatch
+  if (now === null) {
+    return (
+      <div className="flex items-center gap-2">
+        {[["--", "Hrs"], ["--", "Min"], ["--", "Sec"]].map(([n, label], i) => (
+          <div key={i} className="flex items-center gap-2">
+            {i > 0 && <span className="text-2xl font-bold text-gold-foreground">:</span>}
+            <div className="flex flex-col items-center">
+              <div className="grid h-14 w-14 place-items-center rounded-xl bg-ink font-display text-2xl font-bold tabular-nums text-primary-foreground shadow-inner">
+                {n}
+              </div>
+              <span className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-gold-foreground/80">
+                {label}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   const diff = Math.max(0, target - now);
   const h = Math.floor(diff / 3600000);
