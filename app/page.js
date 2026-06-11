@@ -38,7 +38,7 @@ export default function Home() {
       <Hero />
       <TrustTicker />
       <Categories />
-      {/* <FlashSales /> */}
+      <FlashSales />
       {/* <Featured /> */}
       {/* <ShopByCountry /> */}
       {/* <BestSellers /> */}
