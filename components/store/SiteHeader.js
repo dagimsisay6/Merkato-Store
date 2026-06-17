@@ -251,6 +251,7 @@ export function SiteHeader() {
                 {c.name}
               </Link>
             ))}
+            <Link href="/about" className="whitespace-nowrap py-1.5 transition hover:text-primary">About</Link>
             <Link href="/deals" className="whitespace-nowrap py-1.5 font-semibold text-accent">Flash Deals 🔥</Link>
             <Link href="/new-arrivals" className="whitespace-nowrap py-1.5 transition hover:text-primary">New Arrivals</Link>
             <Link href="/best-sellers" className="whitespace-nowrap py-1.5 transition hover:text-primary">Best Sellers</Link>
@@ -275,6 +276,7 @@ export function SiteHeader() {
                 <Link href="/best-sellers" className="block rounded-lg px-3 py-2 hover:bg-secondary">Best Sellers</Link>
                 <Link href="/brands" className="block rounded-lg px-3 py-2 hover:bg-secondary">Brands</Link>
                 <div className="my-2 border-t border-border" />
+                <Link href="/about" className="block rounded-lg px-3 py-2 hover:bg-secondary">About</Link>
                 <Link href="/account" className="block rounded-lg px-3 py-2 hover:bg-secondary">My Account</Link>
                 <Link href="/forgot-password" className="block rounded-lg px-3 py-2 hover:bg-secondary">Forgot Password</Link>
                 <Link href="/help-center" className="block rounded-lg px-3 py-2 hover:bg-secondary">Help Center</Link>
