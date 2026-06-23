@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
@@ -54,9 +54,7 @@ export default function AccountLayout({ children }) {
           <aside>
             <nav className="sticky top-32 space-y-1 rounded-2xl border border-border bg-card p-3">
               {NAV.map((n) => {
-                const active = n.exact
-                  ? path === n.to
-                  : path.startsWith(n.to);
+                const active = n.exact ? path === n.to : path.startsWith(n.to);
 
                 return (
                   <Link
@@ -75,7 +73,7 @@ export default function AccountLayout({ children }) {
               })}
 
               <button
-                onClick={() => router.push("/login")}
+                onClick={() => router.push("/signin")}
                 className="mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ember hover:bg-ember/10"
               >
                 <LogOut className="h-4 w-4" />
