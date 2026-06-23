@@ -1,44 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
 import Link from "next/link";
 import { ChevronDown, Globe, Send } from "lucide-react";
+import { FaFacebook, FaInstagram, FaTwitter, FaYoutube } from "react-icons/fa";
 import { CATEGORY_LIST } from "@/lib/store-data";
 
-
-function IconFacebook() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
-      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-    </svg>
-  );
-}
-function IconInstagram() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-    </svg>
-  );
-}
-function IconTwitter() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-    </svg>
-  );
-}
-function IconYoutube() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
-      <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z" />
-      <polygon fill="white" points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" />
-    </svg>
-  );
-}
-
-const SOCIAL_ICONS = [IconFacebook, IconInstagram, IconTwitter, IconYoutube];
+const SOCIAL_ICONS = [FaFacebook, FaInstagram, FaTwitter, FaYoutube];
 
 export function SiteFooter() {
   const year = new Date().getFullYear();
@@ -87,7 +54,7 @@ export function SiteFooter() {
                   aria-label="social"
                   className="grid h-10 w-10 place-items-center rounded-full border border-white/10 transition hover:border-gold hover:text-gold"
                 >
-                  <Icon />
+                  <Icon className="h-4 w-4" />
                 </a>
               ))}
             </div>
