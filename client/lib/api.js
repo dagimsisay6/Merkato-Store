@@ -1,23 +1,6 @@
-/**
- * lib/api.js
- * Central API client for Merkato Store.
- * All functions currently return mock data.
- * When the backend is ready, replace the mock imports with real fetch calls.
- */
-
-import {
-  PRODUCTS,
-  CATEGORY_LIST,
-  BRANDS,
-  COUNTRIES,
-  MOCK_ORDERS,
-  MOCK_ADDRESSES,
-  MOCK_REVIEWS,
-} from "./store-data";
-
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
-// ─── helpers ────────────────────────────────────────────────────────────────
+// ─── helpers ─────────────────────────────────────────────────────────────────
 
 async function get(path) {
   const res = await fetch(`${BASE}${path}`, { cache: "no-store" });
@@ -25,136 +8,127 @@ async function get(path) {
   return res.json();
 }
 
-async function post(path, body) {
+async function authGet(path, token) {
+  const res = await fetch(`${BASE}${path}`, {
+    cache: "no-store",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
+  return res.json();
+}
+
+async function post(path, body, token) {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`POST ${path} → ${res.status}`);
   return res.json();
 }
 
-// ─── products ───────────────────────────────────────────────────────────────
+// ─── products ────────────────────────────────────────────────────────────────
 
-export async function getProducts({ category, search, sort, page = 1 } = {}) {
-  // TODO: return get(`/products?category=${category}&q=${search}&sort=${sort}&page=${page}`);
-  let results = [...PRODUCTS];
-  if (category) results = results.filter((p) => p.categorySlug === category);
-  if (search) results = results.filter((p) =>
-    (p.name + p.brand + p.tags.join(" ")).toLowerCase().includes(search.toLowerCase())
-  );
-  if (sort === "price-asc") results.sort((a, b) => a.price - b.price);
-  if (sort === "price-desc") results.sort((a, b) => b.price - a.price);
-  if (sort === "rating") results.sort((a, b) => b.rating - a.rating);
-  return { products: results, total: results.length };
+export async function getProducts({ category, search, sort, featured, isNew, page = 1 } = {}) {
+  const params = new URLSearchParams();
+  if (category) params.set("category", category);
+  if (search) params.set("search", search);
+  if (sort) params.set("sort", sort);
+  if (featured) params.set("featured", true);
+  if (isNew) params.set("isNew", true);
+  params.set("page", page);
+  return get(`/products?${params.toString()}`);
 }
 
 export async function getProductBySlug(slug) {
-  // TODO: return get(`/products/${slug}`);
-  return PRODUCTS.find((p) => p.slug === slug || p.id === slug) ?? null;
+  return get(`/products/${slug}`);
 }
 
 export async function getFeaturedProducts() {
-  // TODO: return get("/products?featured=true");
-  return PRODUCTS.filter((p) => p.featured);
+  return get("/products?featured=true");
 }
 
 export async function getNewArrivals() {
-  // TODO: return get("/products?new=true");
-  return PRODUCTS.filter((p) => p.isNew);
+  return get("/products?isNew=true");
 }
 
 export async function getBestSellers() {
-  // TODO: return get("/products?sort=reviews");
-  return [...PRODUCTS].sort((a, b) => b.reviews - a.reviews);
+  return get("/products?sort=rating");
 }
 
 export async function getDealProducts() {
-  // TODO: return get("/products?deals=true");
-  return PRODUCTS.filter((p) => p.original && p.original > p.price);
+  return get("/products?deals=true");
 }
 
 export async function getRelatedProducts(productId, categorySlug) {
-  // TODO: return get(`/products/${productId}/related`);
-  return PRODUCTS.filter((p) => p.categorySlug === categorySlug && p.id !== productId).slice(0, 4);
+  return get(`/products?category=${categorySlug}&exclude=${productId}&limit=4`);
 }
 
-// ─── categories ─────────────────────────────────────────────────────────────
+// ─── categories ──────────────────────────────────────────────────────────────
 
 export async function getCategories() {
-  // TODO: return get("/categories");
-  return CATEGORY_LIST;
+  return get("/categories");
 }
 
 export async function getCategoryBySlug(slug) {
-  // TODO: return get(`/categories/${slug}`);
-  return CATEGORY_LIST.find((c) => c.slug === slug) ?? null;
+  return get(`/categories/${slug}`);
 }
 
-// ─── brands ─────────────────────────────────────────────────────────────────
+// ─── brands ──────────────────────────────────────────────────────────────────
 
 export async function getBrands() {
-  // TODO: return get("/brands");
-  return BRANDS;
+  return get("/brands");
 }
 
-// ─── regions / countries ────────────────────────────────────────────────────
+// ─── countries ───────────────────────────────────────────────────────────────
 
 export async function getCountries() {
-  // TODO: return get("/regions");
-  return COUNTRIES;
+  return get("/countries");
 }
 
-// ─── orders (authenticated) ─────────────────────────────────────────────────
+// ─── orders (authenticated) ──────────────────────────────────────────────────
 
 export async function getOrders(token) {
-  // TODO: return get("/account/orders", token);
-  return MOCK_ORDERS;
+  return authGet("/orders", token);
 }
 
 export async function getOrderById(id, token) {
-  // TODO: return get(`/account/orders/${id}`, token);
-  return MOCK_ORDERS.find((o) => o.id === id) ?? null;
+  return authGet(`/orders/${id}`, token);
 }
 
-// ─── addresses (authenticated) ──────────────────────────────────────────────
+// ─── addresses (authenticated) ───────────────────────────────────────────────
 
 export async function getAddresses(token) {
-  // TODO: return get("/account/addresses", token);
-  return MOCK_ADDRESSES;
+  return authGet("/users/addresses", token);
 }
 
-// ─── reviews (authenticated) ────────────────────────────────────────────────
+// ─── reviews (authenticated) ─────────────────────────────────────────────────
 
 export async function getReviews(token) {
-  // TODO: return get("/account/reviews", token);
-  return MOCK_REVIEWS;
+  return authGet("/users/reviews", token);
 }
 
-// ─── auth ───────────────────────────────────────────────────────────────────
+// ─── auth ─────────────────────────────────────────────────────────────────────
 
 export async function signIn(email, password) {
-  // TODO: return post("/auth/signin", { email, password });
-  return { token: "mock-token", user: { name: "Amara Okafor", email } };
+  return post("/auth/signin", { email, password });
 }
 
 export async function signUp(data) {
-  // TODO: return post("/auth/signup", data);
-  return { token: "mock-token", user: { name: data.name, email: data.email } };
+  return post("/auth/signup", data);
 }
 
-// ─── newsletter ─────────────────────────────────────────────────────────────
+// ─── newsletter ──────────────────────────────────────────────────────────────
 
 export async function subscribeNewsletter(email) {
-  // TODO: return post("/newsletter/subscribe", { email });
-  return { success: true };
+  return post("/newsletter/subscribe", { email });
 }
 
-// ─── checkout ───────────────────────────────────────────────────────────────
+// ─── checkout ────────────────────────────────────────────────────────────────
 
 export async function createOrder(payload, token) {
-  // TODO: return post("/orders", payload, token);
-  return { orderId: "MK-" + Date.now(), status: "confirmed" };
+  return post("/orders", payload, token);
 }
-
