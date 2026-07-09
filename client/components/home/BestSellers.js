@@ -1,8 +1,7 @@
-import { PRODUCTS } from "@/lib/store-data";
 import { ProductCard } from "@/components/store/ProductCard";
 import { SectionHeader } from "./SectionHeader";
 
-export function BestSellers() {
+export function BestSellers({ products = [] }) {
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 lg:py-24">
       <SectionHeader
@@ -12,11 +11,10 @@ export function BestSellers() {
         viewAll="/best-sellers"
       />
       <div className="mt-10 grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
-        {PRODUCTS.slice(0, 4).map((p) => (
-          <ProductCard key={p.id} p={p} ribbon="Best Seller" />
+        {products.map((p) => (
+          <ProductCard key={p._id} p={p} ribbon="Best Seller" />
         ))}
       </div>
     </section>
   );
 }
-

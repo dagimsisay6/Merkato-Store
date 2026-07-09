@@ -2,11 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import pFashion from "@/assets/p-fashion.jpg";
-import { PRODUCTS } from "@/lib/store-data";
 import { ProductCard } from "@/components/store/ProductCard";
 import { SectionHeader } from "./SectionHeader";
 
-export function Featured() {
+export function Featured({ products = [] }) {
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 lg:py-24">
       <SectionHeader
@@ -44,10 +43,9 @@ export function Featured() {
             </span>
           </div>
         </Link>
-        <ProductCard p={PRODUCTS[1]} />
-        <ProductCard p={PRODUCTS[3]} />
+        {products[1] && <ProductCard p={products[1]} />}
+        {products[3] && <ProductCard p={products[3]} />}
       </div>
     </section>
   );
 }
-

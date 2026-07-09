@@ -1,13 +1,5 @@
 import Link from "next/link";
-import {
-  Smartphone,
-  Shirt,
-  Sparkles,
-  Apple,
-  Home as HomeIcon,
-  Gem,
-} from "lucide-react";
-import { CATEGORY_LIST } from "@/lib/store-data";
+import { Smartphone, Shirt, Sparkles, Apple, Home as HomeIcon, Gem } from "lucide-react";
 import { SectionHeader } from "./SectionHeader";
 
 const CATEGORY_ICONS = {
@@ -19,7 +11,7 @@ const CATEGORY_ICONS = {
   accessories: Gem,
 };
 
-export function Categories() {
+export function Categories({ categories = [] }) {
   return (
     <section id="categories" className="mx-auto max-w-7xl px-4 py-16 lg:py-24">
       <SectionHeader
@@ -29,7 +21,7 @@ export function Categories() {
         viewAll="/categories"
       />
       <div className="no-scrollbar -mx-4 mt-10 flex gap-4 overflow-x-auto px-4 md:grid md:grid-cols-3 md:gap-6 md:overflow-visible lg:grid-cols-4">
-        {CATEGORY_LIST.map((c) => {
+        {categories.map((c) => {
           const Icon = CATEGORY_ICONS[c.slug] ?? Gem;
           return (
             <Link
@@ -41,12 +33,8 @@ export function Categories() {
                 <Icon className="h-7 w-7" />
               </div>
               <div>
-                <p className="font-display text-sm font-bold text-foreground">
-                  {c.name}
-                </p>
-                <p className="mt-1 text-[11px] font-medium text-muted-foreground">
-                  {c.count} items
-                </p>
+                <p className="font-display text-sm font-bold text-foreground">{c.name}</p>
+                <p className="mt-1 text-[11px] font-medium text-muted-foreground">{c.count} items</p>
               </div>
             </Link>
           );
@@ -55,4 +43,3 @@ export function Categories() {
     </section>
   );
 }
-

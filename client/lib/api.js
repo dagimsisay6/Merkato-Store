@@ -1,7 +1,5 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
-
 async function get(path) {
   const res = await fetch(`${BASE}${path}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
@@ -30,9 +28,16 @@ async function post(path, body, token) {
   return res.json();
 }
 
-// ─── products ────────────────────────────────────────────────────────────────
+//products
 
-export async function getProducts({ category, search, sort, featured, isNew, page = 1 } = {}) {
+export async function getProducts({
+  category,
+  search,
+  sort,
+  featured,
+  isNew,
+  page = 1,
+} = {}) {
   const params = new URLSearchParams();
   if (category) params.set("category", category);
   if (search) params.set("search", search);
@@ -67,7 +72,7 @@ export async function getRelatedProducts(productId, categorySlug) {
   return get(`/products?category=${categorySlug}&exclude=${productId}&limit=4`);
 }
 
-// ─── categories ──────────────────────────────────────────────────────────────
+// categories
 
 export async function getCategories() {
   return get("/categories");
@@ -77,19 +82,19 @@ export async function getCategoryBySlug(slug) {
   return get(`/categories/${slug}`);
 }
 
-// ─── brands ──────────────────────────────────────────────────────────────────
+// brands
 
 export async function getBrands() {
   return get("/brands");
 }
 
-// ─── countries ───────────────────────────────────────────────────────────────
+//countries
 
 export async function getCountries() {
   return get("/countries");
 }
 
-// ─── orders (authenticated) ──────────────────────────────────────────────────
+// orders (authenticated)
 
 export async function getOrders(token) {
   return authGet("/orders", token);
@@ -99,19 +104,19 @@ export async function getOrderById(id, token) {
   return authGet(`/orders/${id}`, token);
 }
 
-// ─── addresses (authenticated) ───────────────────────────────────────────────
+// addresses (authenticated
 
 export async function getAddresses(token) {
   return authGet("/users/addresses", token);
 }
 
-// ─── reviews (authenticated) ─────────────────────────────────────────────────
+// reviews (authenticated)
 
 export async function getReviews(token) {
   return authGet("/users/reviews", token);
 }
 
-// ─── auth ─────────────────────────────────────────────────────────────────────
+// auth
 
 export async function signIn(email, password) {
   return post("/auth/signin", { email, password });
@@ -121,13 +126,13 @@ export async function signUp(data) {
   return post("/auth/signup", data);
 }
 
-// ─── newsletter ──────────────────────────────────────────────────────────────
+// newsletter
 
 export async function subscribeNewsletter(email) {
   return post("/newsletter/subscribe", { email });
 }
 
-// ─── checkout ────────────────────────────────────────────────────────────────
+// checkout
 
 export async function createOrder(payload, token) {
   return post("/orders", payload, token);

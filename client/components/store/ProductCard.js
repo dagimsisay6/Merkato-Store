@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Heart, Plus, Star } from "lucide-react";
-import { fmt, imgSrc } from "@/lib/store-data";
+const fmt = (n) => `$${Number(n).toFixed(2)}`;
 import { useWishlist, useCart } from "@/lib/store-context";
 import {
   HoverCard,
@@ -11,13 +11,17 @@ import {
 } from "@/components/ui/hover-card";
 
 export function ProductCard({ p, ribbon }) {
-  const discount = p.original
-    ? Math.round(((p.original - p.price) / p.original) * 100)
+  const id = p._id ?? p.id;
+  const image = p.images?.[0] ?? p.img?.src ?? p.img ?? "";
+  const originalPrice = p.originalPrice ?? p.original;
+  const reviewCount = p.reviewCount ?? p.reviews;
+  const discount = originalPrice
+    ? Math.round(((originalPrice - p.price) / originalPrice) * 100)
     : 0;
 
   const wishlist = useWishlist();
   const cart = useCart();
-  const wished = wishlist.has(p.id);
+  const wished = wishlist.has(id);
 
   return (
     <HoverCard openDelay={300} closeDelay={100}>
@@ -26,11 +30,11 @@ export function ProductCard({ p, ribbon }) {
         <div className="group relative flex flex-col overflow-hidden rounded-2xl bg-card shadow-(--shadow-soft) transition-all duration-300 hover:-translate-y-1 hover:shadow-(--shadow-elegant) cursor-pointer">
           {/* Image area */}
           <Link
-            href={`/products/${p.slug ?? p.id}`}
+            href={`/products/${p.slug ?? id}`}
             className="relative aspect-square overflow-hidden bg-muted"
           >
             <img
-              src={imgSrc(p.img)}
+              src={image}
               alt={p.name}
               loading="lazy"
               className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
@@ -53,7 +57,7 @@ export function ProductCard({ p, ribbon }) {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                cart.add(p.id);
+                cart.add(id);
               }}
               className="absolute inset-x-3 bottom-3 translate-y-10 rounded-xl bg-primary py-2.5 text-center text-sm font-semibold text-primary-foreground opacity-0 shadow-lg transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100"
             >
@@ -69,7 +73,7 @@ export function ProductCard({ p, ribbon }) {
             type="button"
             onClick={(e) => {
               e.preventDefault();
-              wishlist.toggle(p.id);
+              wishlist.toggle(id);
             }}
             className={`absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-white/90 backdrop-blur transition-opacity duration-300 ${
               wished ? "opacity-100" : "opacity-0 group-hover:opacity-100"
@@ -82,7 +86,7 @@ export function ProductCard({ p, ribbon }) {
 
           {/* Info */}
           <Link
-            href={`/products/${p.slug ?? p.id}`}
+            href={`/products/${p.slug ?? id}`}
             className="flex flex-1 flex-col gap-1.5 p-4"
           >
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -94,21 +98,21 @@ export function ProductCard({ p, ribbon }) {
               <span className="font-medium text-foreground">
                 {p.rating.toFixed(1)}
               </span>
-              <span>({p.reviews})</span>
+              <span>({reviewCount})</span>
             </div>
             <div className="mt-auto flex items-baseline gap-2 pt-1">
               <span className="text-base font-bold text-accent">
                 {fmt(p.price)}
               </span>
-              {p.original && (
+              {originalPrice && (
                 <span className="text-xs line-through text-muted-foreground">
-                  {fmt(p.original)}
+                  {fmt(originalPrice)}
                 </span>
               )}
             </div>
-            {p.lowStock && (
+            {p.stock <= 5 && p.stock > 0 && (
               <p className="text-[11px] font-semibold text-red-500">
-                Only {p.lowStock} left!
+                Only {p.stock} left!
               </p>
             )}
           </Link>
@@ -126,7 +130,7 @@ export function ProductCard({ p, ribbon }) {
         <div className="mt-2 flex items-center gap-1 text-xs">
           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
           <span className="font-semibold">{p.rating.toFixed(1)}</span>
-          <span className="text-muted-foreground">({p.reviews})</span>
+          <span className="text-muted-foreground">({reviewCount})</span>
         </div>
         <p className="mt-2 font-bold text-accent">{fmt(p.price)}</p>
       </HoverCardContent>

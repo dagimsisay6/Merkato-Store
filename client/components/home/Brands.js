@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { BRANDS } from "@/lib/store-data";
 
-export function Brands() {
+export function Brands({ brands = [] }) {
   return (
     <section className="border-y border-border bg-card/40">
       <div className="mx-auto max-w-7xl px-4 py-12">
@@ -9,7 +8,7 @@ export function Brands() {
           Loved by world-class brands
         </p>
         <div className="no-scrollbar mt-8 flex items-center justify-start gap-12 overflow-x-auto md:justify-center">
-          {BRANDS.map((b) => (
+          {brands.map((b) => (
             <Link
               key={b.slug}
               href="/brands"
@@ -23,4 +22,3 @@ export function Brands() {
     </section>
   );
 }
-

@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { Flame, ArrowRight } from "lucide-react";
-import { PRODUCTS } from "@/lib/store-data";
 import { ProductCard } from "@/components/store/ProductCard";
 import { Countdown } from "@/components/store/Countdown";
 
-export function FlashSales() {
+export function FlashSales({ products = [] }) {
   return (
     <section className="relative overflow-hidden bg-linear-to-br from-gold/95 via-gold to-accent/90">
       <div className="absolute inset-0 kente-pattern opacity-40" />
@@ -21,8 +20,8 @@ export function FlashSales() {
           <Countdown />
         </div>
         <div className="no-scrollbar mt-10 flex gap-4 overflow-x-auto pb-2 lg:grid lg:grid-cols-4 lg:overflow-visible">
-          {PRODUCTS.slice(0, 4).map((p) => (
-            <div key={p.id} className="w-64 shrink-0 lg:w-auto">
+          {products.map((p) => (
+            <div key={p._id} className="w-64 shrink-0 lg:w-auto">
               <ProductCard p={p} />
             </div>
           ))}
@@ -40,4 +39,3 @@ export function FlashSales() {
     </section>
   );
 }
-
