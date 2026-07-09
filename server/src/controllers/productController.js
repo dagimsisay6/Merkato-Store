@@ -6,8 +6,10 @@ async function getProducts(req, res, next) {
     const filter = { isActive: true };
 
     if (category) filter.category = category;
+    if (req.query.exclude) filter._id = { $ne: req.query.exclude };
     if (featured) filter.isFeatured = true;
-    if (isNew) filter.isNew = true;
+    if (isNew) filter.isNewArrival = true;
+    if (req.query.deals) filter.originalPrice = { $exists: true, $gt: 0 };
     if (search) filter.$text = { $search: search };
 
     const sortMap = {
