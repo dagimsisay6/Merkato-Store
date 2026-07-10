@@ -1,5 +1,26 @@
 const orders = require("../queries/orders");
 
+async function getAllOrders(req, res, next) {
+  try {
+    const { page, limit } = req.query;
+    const rows = await orders.findAll({ page, limit });
+    res.json({ orders: rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateOrderStatus(req, res, next) {
+  try {
+    const { status } = req.body;
+    const order = await orders.updateStatus(req.params.id, status);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+    res.json({ order });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getOrders(req, res, next) {
   try {
     const rows = await orders.findByUser(req.user.id);
@@ -37,4 +58,4 @@ async function createOrder(req, res, next) {
   }
 }
 
-module.exports = { getOrders, getOrderById, createOrder };
+module.exports = { getAllOrders, updateOrderStatus, getOrders, getOrderById, createOrder };
