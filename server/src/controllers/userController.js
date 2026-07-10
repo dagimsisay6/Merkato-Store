@@ -1,4 +1,4 @@
-const User = require("../models/User");
+const users = require("../queries/users");
 
 async function getProfile(req, res) {
   res.json({ user: req.user });
@@ -7,7 +7,7 @@ async function getProfile(req, res) {
 async function updateProfile(req, res, next) {
   try {
     const { name, phone, avatar } = req.body;
-    const user = await User.findByIdAndUpdate(req.user._id, { name, phone, avatar }, { new: true, runValidators: true });
+    const user = await users.update(req.user.id, { name, phone, avatar });
     res.json({ user });
   } catch (err) {
     next(err);
@@ -15,17 +15,15 @@ async function updateProfile(req, res, next) {
 }
 
 async function getAddresses(req, res) {
-  res.json({ addresses: req.user.addresses });
+  res.json({ addresses: req.user.addresses || [] });
 }
 
 async function addAddress(req, res, next) {
   try {
-    const user = await User.findById(req.user._id);
-    if (req.body.isDefault) {
-      user.addresses.forEach((a) => (a.isDefault = false));
-    }
-    user.addresses.push(req.body);
-    await user.save();
+    const addresses = [...(req.user.addresses || [])];
+    if (req.body.isDefault) addresses.forEach((a) => (a.isDefault = false));
+    addresses.push({ ...req.body, id: Date.now() });
+    const user = await users.updateAddresses(req.user.id, addresses);
     res.status(201).json({ addresses: user.addresses });
   } catch (err) {
     next(err);
@@ -34,9 +32,8 @@ async function addAddress(req, res, next) {
 
 async function deleteAddress(req, res, next) {
   try {
-    const user = await User.findById(req.user._id);
-    user.addresses = user.addresses.filter((a) => a._id.toString() !== req.params.id);
-    await user.save();
+    const addresses = (req.user.addresses || []).filter((a) => String(a.id) !== req.params.id);
+    const user = await users.updateAddresses(req.user.id, addresses);
     res.json({ addresses: user.addresses });
   } catch (err) {
     next(err);

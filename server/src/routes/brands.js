@@ -1,10 +1,10 @@
 const router = require("express").Router();
-const Brand = require("../models/Brand");
+const brands = require("../queries/brands");
 
 router.get("/", async (req, res, next) => {
   try {
-    const brands = await Brand.find({ isActive: true });
-    res.json({ brands });
+    const rows = await brands.findAll();
+    res.json({ brands: rows });
   } catch (err) {
     next(err);
   }

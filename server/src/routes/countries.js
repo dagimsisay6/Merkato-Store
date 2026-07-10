@@ -1,10 +1,10 @@
 const router = require("express").Router();
-const Country = require("../models/Country");
+const countries = require("../queries/countries");
 
 router.get("/", async (req, res, next) => {
   try {
-    const countries = await Country.find({ isActive: true });
-    res.json({ countries });
+    const rows = await countries.findAll();
+    res.json({ countries: rows });
   } catch (err) {
     next(err);
   }

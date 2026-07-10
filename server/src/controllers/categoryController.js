@@ -1,9 +1,9 @@
-const Category = require("../models/Category");
+const categories = require("../queries/categories");
 
 async function getCategories(req, res, next) {
   try {
-    const categories = await Category.find({ isActive: true });
-    res.json({ categories });
+    const rows = await categories.findAll();
+    res.json({ categories: rows });
   } catch (err) {
     next(err);
   }
@@ -11,7 +11,7 @@ async function getCategories(req, res, next) {
 
 async function getCategoryBySlug(req, res, next) {
   try {
-    const category = await Category.findOne({ slug: req.params.slug, isActive: true });
+    const category = await categories.findBySlug(req.params.slug);
     if (!category) return res.status(404).json({ message: "Category not found" });
     res.json({ category });
   } catch (err) {
@@ -21,7 +21,7 @@ async function getCategoryBySlug(req, res, next) {
 
 async function createCategory(req, res, next) {
   try {
-    const category = await Category.create(req.body);
+    const category = await categories.create(req.body);
     res.status(201).json({ category });
   } catch (err) {
     next(err);
