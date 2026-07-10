@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { Heart, Plus, Star } from "lucide-react";
 const fmt = (n) => `$${Number(n).toFixed(2)}`;
-import { useWishlist, useCart } from "@/lib/store-context";
+import { useWishlist, useCart, useAuth } from "@/lib/store-context";
+import { useToast } from "@/components/ui/toast";
 import {
   HoverCard,
   HoverCardTrigger,
@@ -22,7 +23,22 @@ export function ProductCard({ p, ribbon }) {
 
   const wishlist = useWishlist();
   const cart = useCart();
+  const { isLoggedIn } = useAuth();
+  const toast = useToast();
   const wished = wishlist.has(id);
+
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isLoggedIn) { toast({ message: "Please sign in to add items to your cart.", type: "info" }); return; }
+    cart.add(id);
+  };
+
+  const handleWishlist = (e) => {
+    e.preventDefault();
+    if (!isLoggedIn) { toast({ message: "Please sign in to save items to your wishlist.", type: "info" }); return; }
+    wishlist.toggle(id);
+  };
 
   return (
     <HoverCard openDelay={300} closeDelay={100}>
@@ -55,11 +71,7 @@ export function ProductCard({ p, ribbon }) {
 
             {/* Quick Add — lives inside the image Link so overflow-hidden contains the slide */}
             <div
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                cart.add(id);
-              }}
+              onClick={handleAddToCart}
               className="absolute inset-x-3 bottom-3 translate-y-10 rounded-xl bg-primary py-2.5 text-center text-sm font-semibold text-primary-foreground opacity-0 shadow-lg transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100"
             >
               <span className="inline-flex items-center justify-center gap-2">
@@ -72,10 +84,7 @@ export function ProductCard({ p, ribbon }) {
           {/* Wishlist button */}
           <button
             type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              wishlist.toggle(id);
-            }}
+            onClick={handleWishlist}
             className={`absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-white/90 backdrop-blur transition-opacity duration-300 ${
               wished ? "opacity-100" : "opacity-0 group-hover:opacity-100"
             }`}
