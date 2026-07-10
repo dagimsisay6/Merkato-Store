@@ -19,17 +19,23 @@ import {
 } from "@/lib/api";
 
 export default async function Home() {
-  const [productsData, categoriesData, brandsData, countriesData] = await Promise.all([
+  console.log("[HOME] Fetching from API:", process.env.NEXT_PUBLIC_API_URL);
+  const [productsData, categoriesData, brandsData, countriesData] = await Promise.allSettled([
     getProducts({ page: 1 }),
     getCategories(),
     getBrands(),
     getCountries(),
   ]);
 
-  const products = productsData?.products ?? [];
-  const categories = categoriesData?.categories ?? [];
-  const brands = brandsData?.brands ?? [];
-  const countries = countriesData?.countries ?? [];
+  console.log("[HOME] products:", productsData.status, productsData.reason?.message ?? "");
+  console.log("[HOME] categories:", categoriesData.status, categoriesData.reason?.message ?? "");
+  console.log("[HOME] brands:", brandsData.status, brandsData.reason?.message ?? "");
+  console.log("[HOME] countries:", countriesData.status, countriesData.reason?.message ?? "");
+
+  const products = productsData.status === "fulfilled" ? (productsData.value?.products ?? []) : [];
+  const categories = categoriesData.status === "fulfilled" ? (categoriesData.value?.categories ?? []) : [];
+  const brands = brandsData.status === "fulfilled" ? (brandsData.value?.brands ?? []) : [];
+  const countries = countriesData.status === "fulfilled" ? (countriesData.value?.countries ?? []) : [];
 
   return (
     <div>

@@ -3,7 +3,6 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
-const connectDB = require("./src/config/db");
 const errorHandler = require("./src/middleware/errorHandler");
 
 const authRoutes = require("./src/routes/auth");
@@ -43,11 +42,6 @@ app.use((req, res) => res.status(404).json({ message: "Route not found" }));
 // Error handler
 app.use(errorHandler);
 
-async function start() {
-  await connectDB();
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-  });
-}
-
-start();
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+});

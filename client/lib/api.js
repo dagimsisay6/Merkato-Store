@@ -1,9 +1,17 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
 async function get(path) {
-  const res = await fetch(`${BASE}${path}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
-  return res.json();
+  try {
+    const res = await fetch(`${BASE}${path}`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
+    return res.json();
+  } catch (err) {
+    console.error(`API error: ${err.message}`);
+    return null;
+  }
 }
 
 async function authGet(path, token) {
