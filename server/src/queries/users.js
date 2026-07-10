@@ -1,7 +1,7 @@
 const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
 
-const PUBLIC_FIELDS = "id, name, email, role, avatar, phone, addresses, wishlist, created_at";
+const PUBLIC_FIELDS = "id, name, email, role, avatar, phone, addresses, wishlist, cart, created_at";
 
 async function findByEmail(email) {
   const { rows } = await pool.query("SELECT *, password FROM users WHERE email = $1", [email.toLowerCase()]);
@@ -83,8 +83,16 @@ async function updateWishlist(id, wishlist) {
   return rows[0];
 }
 
+async function updateCart(id, cart) {
+  const { rows } = await pool.query(
+    `UPDATE users SET cart=$1, updated_at=NOW() WHERE id=$2 RETURNING ${PUBLIC_FIELDS}`,
+    [JSON.stringify(cart), id]
+  );
+  return rows[0];
+}
+
 function comparePassword(candidate, hash) {
   return bcrypt.compare(candidate, hash);
 }
 
-module.exports = { findByEmail, findById, findAll, create, update, updateRole, updatePassword, disable, updateAddresses, updateWishlist, comparePassword };
+module.exports = { findByEmail, findById, findAll, create, update, updateRole, updatePassword, disable, updateAddresses, updateWishlist, updateCart, comparePassword };

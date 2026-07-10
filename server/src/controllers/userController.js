@@ -1,5 +1,6 @@
 const users = require("../queries/users");
 const bcrypt = require("bcryptjs");
+const pool = require("../config/db");
 
 // ── Profile ──────────────────────────────────────────────
 async function getProfile(req, res) {
@@ -98,6 +99,35 @@ async function removeFromWishlist(req, res, next) {
   }
 }
 
+// ── Cart ─────────────────────────────────────────────────
+async function getCart(req, res) {
+  res.json({ cart: req.user.cart || [] });
+}
+
+async function updateCart(req, res, next) {
+  try {
+    const { items } = req.body; // [{ id, qty }]
+    const user = await users.updateCart(req.user.id, items);
+    res.json({ cart: user.cart });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── Delete account ────────────────────────────────────────
+async function deleteAccount(req, res, next) {
+  try {
+    const { currentPassword } = req.body;
+    const full = await users.findByEmail(req.user.email);
+    const valid = await users.comparePassword(currentPassword, full.password);
+    if (!valid) return res.status(400).json({ message: "Password is incorrect" });
+    await pool.query("DELETE FROM users WHERE id=$1", [req.user.id]);
+    res.json({ message: "Account deleted" });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // ── Admin ─────────────────────────────────────────────────
 async function getAllUsers(req, res, next) {
   try {
@@ -146,5 +176,6 @@ module.exports = {
   getProfile, updateProfile, changePassword,
   getAddresses, addAddress, updateAddress, deleteAddress,
   getWishlist, addToWishlist, removeFromWishlist,
+  getCart, updateCart, deleteAccount,
   getAllUsers, getUserById, updateUserRole, disableUser,
 };

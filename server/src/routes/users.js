@@ -3,6 +3,7 @@ const {
   getProfile, updateProfile, changePassword,
   getAddresses, addAddress, updateAddress, deleteAddress,
   getWishlist, addToWishlist, removeFromWishlist,
+  getCart, updateCart, deleteAccount,
   getAllUsers, getUserById, updateUserRole, disableUser,
 } = require("../controllers/userController");
 const { getUserReviews } = require("../controllers/reviewController");
@@ -25,6 +26,13 @@ router.delete("/addresses/:id", deleteAddress);
 router.get("/wishlist", getWishlist);
 router.post("/wishlist/:productId", addToWishlist);
 router.delete("/wishlist/:productId", removeFromWishlist);
+
+// Cart
+router.get("/cart", getCart);
+router.put("/cart", updateCart);
+
+// Delete account
+router.delete("/account", deleteAccount);
 
 // Reviews
 router.get("/reviews", getUserReviews);

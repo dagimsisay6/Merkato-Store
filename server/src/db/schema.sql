@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS users (
   phone      TEXT,
   addresses  JSONB DEFAULT '[]',
   wishlist   INT[] DEFAULT '{}',
+  cart       JSONB DEFAULT '[]',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
