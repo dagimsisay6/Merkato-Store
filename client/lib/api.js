@@ -23,6 +23,28 @@ async function authGet(path, token) {
   return res.json();
 }
 
+async function authDelete(path, token) {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`DELETE ${path} → ${res.status}`);
+  return res.json();
+}
+
+async function put(path, body, token) {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`PUT ${path} → ${res.status}`);
+  return res.json();
+}
+
 async function post(path, body, token) {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
@@ -100,6 +122,39 @@ export async function getBrands() {
 
 export async function getCountries() {
   return get("/countries");
+}
+
+// wishlist
+export async function getWishlist(token) {
+  return authGet("/users/wishlist", token);
+}
+export async function addToWishlist(productId, token) {
+  return post(`/users/wishlist/${productId}`, {}, token);
+}
+export async function removeFromWishlist(productId, token) {
+  return authDelete(`/users/wishlist/${productId}`, token);
+}
+
+// cart
+export async function getCart(token) {
+  return authGet("/users/cart", token);
+}
+export async function saveCart(items, token) {
+  return put("/users/cart", { items }, token);
+}
+
+// delete account
+export async function deleteAccount(currentPassword, token) {
+  const res = await fetch(`${BASE}/users/account`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ currentPassword }),
+  });
+  if (!res.ok) throw new Error(`DELETE /users/account → ${res.status}`);
+  return res.json();
 }
 
 // orders (authenticated)

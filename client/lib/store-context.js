@@ -1,7 +1,10 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { PRODUCTS } from "./store-data";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import {
+  getCart, saveCart,
+  getWishlist, addToWishlist, removeFromWishlist,
+} from "./api";
 
 const CartContext = createContext(null);
 const WishContext = createContext(null);
@@ -9,76 +12,129 @@ const AuthContext = createContext(null);
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
-function useLocal(key, initial) {
-  const [v, setV] = useState(initial);
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw) setV(JSON.parse(raw));
-    } catch {}
-  }, []);
-  useEffect(() => {
-    try { localStorage.setItem(key, JSON.stringify(v)); } catch {}
-  }, [key, v]);
-  return [v, setV];
-}
-
 export function StoreProvider({ children }) {
-  const [items, setItems] = useLocal("merkato.cart", []);
-  const [wish, setWish] = useLocal("merkato.wish", []);
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
 
-  // Rehydrate auth from localStorage on mount
+  // cart: [{ id, qty, product }]  — product details merged after fetch
+  const [cartItems, setCartItems] = useState([]); // [{ id, qty }]
+  const [cartProducts, setCartProducts] = useState({}); // id -> product object
+  const [wishIds, setWishIds] = useState([]); // number[]
+
+  const syncTimer = useRef(null);
+
+  // ── Rehydrate auth ──────────────────────────────────────
   useEffect(() => {
     try {
       const t = localStorage.getItem("merkato.token");
       const u = localStorage.getItem("merkato.user");
-      if (t && u) {
-        setToken(t);
-        setUser(JSON.parse(u));
-      }
+      if (t && u) { setToken(t); setUser(JSON.parse(u)); }
     } catch {}
   }, []);
 
-  const detailed = items
-    .map(i => {
-      const product = PRODUCTS.find(p => p.id === i.id);
-      return product ? { product, qty: i.qty } : null;
-    })
-    .filter(Boolean);
+  // ── Load cart + wishlist when user logs in ──────────────
+  useEffect(() => {
+    if (!token) {
+      setCartItems([]);
+      setCartProducts({});
+      setWishIds([]);
+      return;
+    }
+    getCart(token).then(d => setCartItems(d?.cart || [])).catch(() => {});
+    getWishlist(token).then(d => setWishIds(d?.wishlist || [])).catch(() => {});
+  }, [token]);
 
-  const subtotal = detailed.reduce((s, d) => s + d.product.price * d.qty, 0);
-  const count = items.reduce((s, i) => s + i.qty, 0);
+  // ── Fetch product details for cart items ────────────────
+  useEffect(() => {
+    const missing = cartItems.map(i => i.id).filter(id => !cartProducts[id]);
+    if (!missing.length) return;
+    Promise.all(
+      missing.map(id =>
+        fetch(`${BASE}/products/${id}`).then(r => r.ok ? r.json() : null).catch(() => null)
+      )
+    ).then(results => {
+      const map = {};
+      results.forEach(r => { if (r?.product) map[r.product.id] = r.product; else if (r?.id) map[r.id] = r; });
+      setCartProducts(prev => ({ ...prev, ...map }));
+    });
+  }, [cartItems]);
 
-  const cart = {
-    items, detailed, subtotal, count,
-    add: (id, qty = 1) =>
-      setItems(prev => {
-        const existing = prev.find(p => p.id === id);
-        if (existing) return prev.map(p => (p.id === id ? { ...p, qty: p.qty + qty } : p));
-        return [...prev, { id, qty }];
-      }),
-    remove: id => setItems(prev => prev.filter(p => p.id !== id)),
-    setQty: (id, qty) =>
-      setItems(prev => prev.map(p => (p.id === id ? { ...p, qty: Math.max(1, qty) } : p))),
-    clear: () => setItems([]),
+  // ── Debounced cart sync to server ───────────────────────
+  const scheduleSync = (items) => {
+    if (!token) return;
+    clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(() => {
+      saveCart(items.map(({ id, qty }) => ({ id, qty })), token).catch(() => {});
+    }, 600);
   };
 
-  const wishlist = {
-    ids: wish,
-    has: id => wish.includes(id),
-    toggle: id => setWish(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])),
-    remove: id => setWish(prev => prev.filter(x => x !== id)),
-    moveToCart: id => {
-      cart.add(id);
-      setWish(prev => prev.filter(x => x !== id));
+  // ── Cart ────────────────────────────────────────────────
+  const detailed = cartItems
+    .map(i => cartProducts[i.id] ? { product: cartProducts[i.id], qty: i.qty } : null)
+    .filter(Boolean);
+
+  const subtotal = detailed.reduce((s, d) => s + Number(d.product.price) * d.qty, 0);
+  const count = cartItems.reduce((s, i) => s + i.qty, 0);
+
+  const cart = {
+    items: cartItems, detailed, subtotal, count,
+    add: (id, qty = 1) => {
+      setCartItems(prev => {
+        const next = prev.find(p => p.id === id)
+          ? prev.map(p => p.id === id ? { ...p, qty: p.qty + qty } : p)
+          : [...prev, { id, qty }];
+        scheduleSync(next);
+        return next;
+      });
+    },
+    remove: (id) => {
+      setCartItems(prev => {
+        const next = prev.filter(p => p.id !== id);
+        scheduleSync(next);
+        return next;
+      });
+    },
+    setQty: (id, qty) => {
+      setCartItems(prev => {
+        const next = prev.map(p => p.id === id ? { ...p, qty: Math.max(1, qty) } : p);
+        scheduleSync(next);
+        return next;
+      });
+    },
+    clear: () => {
+      setCartItems([]);
+      if (token) saveCart([], token).catch(() => {});
     },
   };
 
+  // ── Wishlist ────────────────────────────────────────────
+  const wishlist = {
+    ids: wishIds,
+    has: id => wishIds.includes(Number(id)),
+    toggle: async (id) => {
+      const numId = Number(id);
+      if (wishIds.includes(numId)) {
+        setWishIds(prev => prev.filter(x => x !== numId));
+        if (token) removeFromWishlist(numId, token).catch(() => {});
+      } else {
+        setWishIds(prev => [...prev, numId]);
+        if (token) addToWishlist(numId, token).catch(() => {});
+      }
+    },
+    remove: async (id) => {
+      const numId = Number(id);
+      setWishIds(prev => prev.filter(x => x !== numId));
+      if (token) removeFromWishlist(numId, token).catch(() => {});
+    },
+    moveToCart: (id) => {
+      cart.add(Number(id));
+      wishlist.remove(id);
+    },
+  };
+
+  // ── Auth ────────────────────────────────────────────────
   const auth = {
-    user,
-    token,
+    user, token,
     isAdmin: user?.role === "admin",
     isLoggedIn: !!user,
     signin: async (email, password) => {
@@ -91,7 +147,6 @@ export function StoreProvider({ children }) {
       if (!res.ok) throw new Error(data.message || "Sign in failed");
       localStorage.setItem("merkato.token", data.token);
       localStorage.setItem("merkato.user", JSON.stringify(data.user));
-      // Set cookie for middleware
       document.cookie = `merkato.token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}`;
       document.cookie = `merkato.role=${data.user.role}; path=/; max-age=${7 * 24 * 60 * 60}`;
       setToken(data.token);
