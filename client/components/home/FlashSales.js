@@ -21,7 +21,7 @@ export function FlashSales({ products = [] }) {
         </div>
         <div className="no-scrollbar mt-10 flex gap-4 overflow-x-auto pb-2 lg:grid lg:grid-cols-4 lg:overflow-visible">
           {products.map((p) => (
-            <div key={p._id} className="w-64 shrink-0 lg:w-auto">
+            <div key={p.id} className="w-64 shrink-0 lg:w-auto">
               <ProductCard p={p} />
             </div>
           ))}

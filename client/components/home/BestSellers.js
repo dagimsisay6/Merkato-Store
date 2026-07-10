@@ -12,7 +12,7 @@ export function BestSellers({ products = [] }) {
       />
       <div className="mt-10 grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
         {products.map((p) => (
-          <ProductCard key={p._id} p={p} ribbon="Best Seller" />
+          <ProductCard key={p.id} p={p} ribbon="Best Seller" />
         ))}
       </div>
     </section>

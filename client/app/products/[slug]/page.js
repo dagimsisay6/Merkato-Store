@@ -10,8 +10,8 @@ import {
   ShieldCheck,
   RotateCcw,
   Plus,
-  Minus,@/lib/store-data
-  Share2,@/lib/store-context
+  Minus,
+  Share2,
   Check,
 } from "lucide-react";
 

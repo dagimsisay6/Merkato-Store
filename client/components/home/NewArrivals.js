@@ -13,7 +13,7 @@ export function NewArrivals({ products = [] }) {
         />
         <div className="mt-10 grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
           {products.map((p) => (
-            <ProductCard key={p._id} p={p} ribbon="New" />
+            <ProductCard key={p.id} p={p} ribbon="New" />
           ))}
         </div>
       </div>

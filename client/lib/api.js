@@ -4,7 +4,7 @@ async function get(path) {
   try {
     const res = await fetch(`${BASE}${path}`, {
       cache: "no-store",
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
     return res.json();

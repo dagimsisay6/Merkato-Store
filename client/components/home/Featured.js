@@ -1,9 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import pFashion from "@/assets/p-fashion.jpg";
 import { ProductCard } from "@/components/store/ProductCard";
 import { SectionHeader } from "./SectionHeader";
+
+const pFashion = "https://res.cloudinary.com/wfpr1ryw/image/upload/v1783707238/merkato/p-fashion.jpg";
 
 export function Featured({ products = [] }) {
   return (
@@ -19,7 +20,7 @@ export function Featured({ products = [] }) {
           href="/categories/fashion"
           className="group relative col-span-1 overflow-hidden rounded-3xl bg-card shadow-(--shadow-soft) lg:col-span-2 lg:row-span-2"
         >
-          <div className="aspect-4/3 w-full overflow-hidden lg:aspect-auto lg:h-full">
+          <div className="relative aspect-4/3 w-full overflow-hidden lg:aspect-auto lg:h-full">
             <Image
               src={pFashion}
               alt="Royal Ankara Collection"

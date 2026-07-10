@@ -5,7 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowDownUp, SlidersHorizontal } from "lucide-react";
 import { ProductCard } from "@/components/store/ProductCard";
-import {@/lib/store-data
+import {
   BRANDS,
   findCategory,
   productsByCategory,

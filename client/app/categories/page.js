@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   Smartphone,
-  Shirt,@/lib/store-data
+  Shirt,
   Sparkles,
   Apple,
   Home as HomeIcon,
