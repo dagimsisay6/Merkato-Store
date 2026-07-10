@@ -1,9 +1,14 @@
-import pHeadphones from "@/assets/p-headphones.jpg";
-import pWatch from "@/assets/p-watch.jpg";
-import pSneakers from "@/assets/p-sneakers.jpg";
-import pBeauty from "@/assets/p-beauty.jpg";
-import pFashion from "@/assets/p-fashion.jpg";
-import pPhone from "@/assets/p-phones.jpg";
+const CDN = "https://res.cloudinary.com/wfpr1ryw/image/upload";
+const v = {
+  hero:         `${CDN}/v1783707230/merkato/hero.jpg`,
+  appMockup:    `${CDN}/v1783707231/merkato/app-mockup.jpg`,
+  pHeadphones:  `${CDN}/v1783707233/merkato/p-headphones.jpg`,
+  pWatch:       `${CDN}/v1783707234/merkato/p-watch.jpg`,
+  pSneakers:    `${CDN}/v1783707235/merkato/p-sneakers.jpg`,
+  pBeauty:      `${CDN}/v1783707237/merkato/p-beauty.jpg`,
+  pFashion:     `${CDN}/v1783707238/merkato/p-fashion.jpg`,
+  pPhone:       `${CDN}/v1783707240/merkato/p-phones.jpg`,
+};
 
 export const CATEGORY_LIST = [
   { slug: "electronics", name: "Electronics", icon: "Smartphone", count: "12,400+", banner: "Latest tech, unbeatable prices." },
@@ -17,7 +22,7 @@ const base = [
     name: "Aurora Wireless Noise-Cancelling Headphones",
     brand: "Sonix", category: "Electronics", categorySlug: "electronics",
     price: 129.99, original: 199.99, rating: 4.8, reviews: 1284,
-    img: pHeadphones, stock: 3,
+    img: v.pHeadphones, stock: 3,
     description: "40-hour battery, adaptive noise cancellation, plush memory-foam earcups. Travel-ready acoustics tuned by sound engineers in Lagos and Dubai.",
     features: ["Active noise cancellation", "40h battery life", "Bluetooth 5.3", "Foldable, travel case included"],
     tags: ["headphones", "audio", "wireless"], featured: true, isBestSeller: true,
@@ -26,7 +31,7 @@ const base = [
     name: "Heritage Gold Automatic Wristwatch",
     brand: "Marakesh", category: "Accessories", categorySlug: "accessories",
     price: 249.0, original: 399.0, rating: 4.7, reviews: 642,
-    img: pWatch, stock: 12,
+    img: v.pWatch, stock: 12,
     description: "A self-winding mechanical movement housed in 316L stainless steel with sapphire crystal — heritage craftsmanship for daily wear.",
     features: ["Automatic movement", "50m water resistant", "Sapphire crystal", "2-year warranty"],
     tags: ["watch", "luxury", "accessories"], featured: true, isBestSeller: true,
@@ -35,7 +40,7 @@ const base = [
     name: "Emerald Runner Performance Sneakers",
     brand: "Pace", category: "Fashion", categorySlug: "fashion",
     price: 89.5, original: 130.0, rating: 4.6, reviews: 2310,
-    img: pSneakers, stock: 20,
+    img: v.pSneakers, stock: 20,
     description: "Lightweight knit upper, responsive foam midsole — built for the streets of Nairobi to the boardwalks of Dubai.",
     features: ["Breathable knit upper", "Responsive cushioning", "Recycled materials", "Unisex sizing"],
     tags: ["sneakers", "running", "shoes"], isNew: true,
@@ -44,7 +49,7 @@ const base = [
     name: "Pure Glow Vitamin C Brightening Serum",
     brand: "Lumière", category: "Beauty", categorySlug: "beauty",
     price: 34.0, original: 49.0, rating: 4.9, reviews: 4120,
-    img: pBeauty, stock: 50,
+    img: v.pBeauty, stock: 50,
     description: "20% pure vitamin C, hyaluronic acid and ferulic acid. Brightens, hydrates, and protects in a single drop.",
     features: ["20% Vitamin C", "Dermatologist tested", "Cruelty free", "30ml glass dropper"],
     tags: ["serum", "skincare", "vitamin c"], isNew: true, isBestSeller: true,
@@ -53,7 +58,7 @@ const base = [
     name: "Royal Ankara Print Wax Fabric — 6 yards",
     brand: "Lagos Loom", category: "Fashion", categorySlug: "fashion",
     price: 59.0, original: 79.0, rating: 4.8, reviews: 880,
-    img: pFashion, stock: 8,
+    img: v.pFashion, stock: 8,
     description: "Authentic Ankara wax print, hand-finished in Lagos. Bold colour, soft drape, premium 100% cotton.",
     features: ["100% premium cotton", "6 yards length", "Handcrafted in Nigeria", "Fade-resistant dyes"],
     tags: ["fabric", "ankara", "textile"], isNew: true,
@@ -62,7 +67,7 @@ const base = [
     name: "Nova X12 Pro Smartphone 256GB",
     brand: "Nova", category: "Electronics", categorySlug: "electronics",
     price: 549.0, original: 699.0, rating: 4.7, reviews: 1860,
-    img: pPhone, stock: 5,
+    img: v.pPhone, stock: 5,
     description: "6.7\" AMOLED, triple 108MP camera, 5000mAh battery and 90W fast charging — flagship power at a fair price.",
     features: ["6.7\" AMOLED 120Hz", "108MP triple camera", "5000mAh + 90W charge", "Dual SIM 5G"],
     tags: ["smartphone", "android", "5g"], featured: true, isBestSeller: true,

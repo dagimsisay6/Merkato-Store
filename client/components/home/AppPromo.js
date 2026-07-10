@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Smartphone, Apple, Play } from "lucide-react";
-import appMockup from "@/assets/app-mockup.jpg";
+
+const appMockup = "https://res.cloudinary.com/wfpr1ryw/image/upload/v1783707231/merkato/app-mockup.jpg";
 
 export function AppPromo() {
   return (

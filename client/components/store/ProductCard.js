@@ -12,9 +12,10 @@ import {
 
 export function ProductCard({ p, ribbon }) {
   const id = p._id ?? p.id;
-  const image = p.images?.[0] ?? p.img?.src ?? p.img ?? "";
+  const image = p.images?.[0] ?? p.img ?? "";
   const originalPrice = p.originalPrice ?? p.original;
   const reviewCount = p.reviewCount ?? p.reviews;
+  const rating = Number(p.rating);
   const discount = originalPrice
     ? Math.round(((originalPrice - p.price) / originalPrice) * 100)
     : 0;
@@ -96,7 +97,7 @@ export function ProductCard({ p, ribbon }) {
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
               <span className="font-medium text-foreground">
-                {p.rating.toFixed(1)}
+                {rating.toFixed(1)}
               </span>
               <span>({reviewCount})</span>
             </div>
@@ -129,7 +130,7 @@ export function ProductCard({ p, ribbon }) {
         </p>
         <div className="mt-2 flex items-center gap-1 text-xs">
           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-          <span className="font-semibold">{p.rating.toFixed(1)}</span>
+          <span className="font-semibold">{rating.toFixed(1)}</span>
           <span className="text-muted-foreground">({reviewCount})</span>
         </div>
         <p className="mt-2 font-bold text-accent">{fmt(p.price)}</p>

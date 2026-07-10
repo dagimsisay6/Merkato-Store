@@ -4,9 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, Sparkles, Star } from "lucide-react";
-import hero from "@/assets/hero.jpg";
-import pHeadphones from "@/assets/p-headphones.jpg";
-import pSneakers from "@/assets/p-sneakers.jpg";
+
+const hero = "https://res.cloudinary.com/wfpr1ryw/image/upload/v1783707230/merkato/hero.jpg";
+const pHeadphones = "https://res.cloudinary.com/wfpr1ryw/image/upload/v1783707233/merkato/p-headphones.jpg";
+const pSneakers = "https://res.cloudinary.com/wfpr1ryw/image/upload/v1783707235/merkato/p-sneakers.jpg";
 
 export function Hero() {
   const router = useRouter();
