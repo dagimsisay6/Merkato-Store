@@ -2,108 +2,142 @@
 
 import { useState } from "react";
 import { Check } from "lucide-react";
+import { useAuth } from "@/lib/store-context";
+
+const BASE = process.env.NEXT_PUBLIC_API_URL;
 
 export default function ProfilePage() {
+  const { user, token } = useAuth();
+  const [name, setName] = useState(user?.name ?? "");
+  const [phone, setPhone] = useState(user?.phone ?? "");
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [pwSaved, setPwSaved] = useState(false);
+  const [pwError, setPwError] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
+
+  async function handleProfile(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`${BASE}/users/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name, phone, avatar: user?.avatar }),
+      });
+      if (!res.ok) throw new Error((await res.json()).message);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setError(err.message);
+    }
+    setSaving(false);
+  }
+
+  async function handlePassword(e) {
+    e.preventDefault();
+    setPwSaving(true);
+    setPwError("");
+    try {
+      const res = await fetch(`${BASE}/users/password`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      if (!res.ok) throw new Error((await res.json()).message);
+      setPwSaved(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setTimeout(() => setPwSaved(false), 2000);
+    } catch (err) {
+      setPwError(err.message);
+    }
+    setPwSaving(false);
+  }
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        setSaved(true);
+    <div className="space-y-6">
+      {/* Profile form */}
+      <form onSubmit={handleProfile} className="rounded-3xl border border-border bg-card p-6 sm:p-8">
+        <h2 className="font-display text-2xl font-bold">Profile</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Update your personal information.</p>
 
-        setTimeout(() => {
-          setSaved(false);
-        }, 2000);
-      }}
-      className="rounded-3xl border border-border bg-card p-6 sm:p-8"
-    >
-      <h2 className="font-display text-2xl font-bold">
-        Profile
-      </h2>
-
-      <p className="mt-1 text-sm text-muted-foreground">
-        Update your personal information.
-      </p>
-
-      <div className="mt-6 flex items-center gap-4">
-        <div className="grid h-20 w-20 place-items-center rounded-full gradient-primary text-3xl font-extrabold text-primary-foreground">
-          A
+        <div className="mt-6 flex items-center gap-4">
+          <div className="grid h-20 w-20 place-items-center rounded-full gradient-primary text-3xl font-extrabold text-primary-foreground">
+            {user?.name?.[0]?.toUpperCase() ?? "U"}
+          </div>
         </div>
 
-        <button
-          type="button"
-          className="rounded-full border border-border px-4 py-2 text-xs font-semibold hover:bg-secondary"
-        >
-          Upload photo
-        </button>
-      </div>
+        {error && <p className="mt-4 rounded-xl bg-ember/10 px-4 py-3 text-sm text-ember">{error}</p>}
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <Input label="First name" defaultValue="Amara" />
-        <Input label="Last name" defaultValue="Okafor" />
-        <Input
-          label="Email"
-          type="email"
-          defaultValue="amara@example.com"
-        />
-        <Input
-          label="Phone"
-          type="tel"
-          defaultValue="+234 801 234 5678"
-        />
-        <Input
-          label="Date of birth"
-          type="date"
-          defaultValue="1995-03-12"
-        />
-
-        <div>
-          <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            Gender
-          </label>
-
-          <select className="mt-1 h-11 w-full rounded-full border border-border bg-background px-4 text-sm outline-none focus:border-primary">
-            <option>Prefer not to say</option>
-            <option>Female</option>
-            <option>Male</option>
-            <option>Non-binary</option>
-          </select>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Full name</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} required
+              className="mt-1 h-11 w-full rounded-full border border-border bg-background px-4 text-sm outline-none focus:border-primary" />
+          </div>
+          <div>
+            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Email</label>
+            <input value={user?.email ?? ""} disabled type="email"
+              className="mt-1 h-11 w-full rounded-full border border-border bg-secondary px-4 text-sm text-muted-foreground outline-none" />
+          </div>
+          <div>
+            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Phone</label>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel"
+              className="mt-1 h-11 w-full rounded-full border border-border bg-background px-4 text-sm outline-none focus:border-primary" />
+          </div>
         </div>
-      </div>
 
-      <div className="mt-6 flex items-center justify-between">
-        <button className="rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-glow">
-          Save changes
-        </button>
+        <div className="mt-6 flex items-center gap-4">
+          <button type="submit" disabled={saving}
+            className="rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-glow disabled:opacity-60">
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+          {saved && (
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+              <Check className="h-4 w-4" /> Saved
+            </span>
+          )}
+        </div>
+      </form>
 
-        {saved && (
-          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
-            <Check className="h-4 w-4" />
-            Saved
-          </span>
-        )}
-      </div>
-    </form>
-  );
-}
+      {/* Change password */}
+      <form onSubmit={handlePassword} className="rounded-3xl border border-border bg-card p-6 sm:p-8">
+        <h2 className="font-display text-xl font-bold">Change password</h2>
 
-function Input({
-  label,
-  type = "text",
-  defaultValue,
-}) {
-  return (
-    <div>
-      <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-        {label}
-      </label>
+        {pwError && <p className="mt-4 rounded-xl bg-ember/10 px-4 py-3 text-sm text-ember">{pwError}</p>}
 
-      <input
-        type={type}
-        defaultValue={defaultValue}
-        className="mt-1 h-11 w-full rounded-full border border-border bg-background px-4 text-sm outline-none focus:border-primary"
-      />
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Current password</label>
+            <input value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} type="password" required
+              className="mt-1 h-11 w-full rounded-full border border-border bg-background px-4 text-sm outline-none focus:border-primary" />
+          </div>
+          <div>
+            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">New password</label>
+            <input value={newPassword} onChange={(e) => setNewPassword(e.target.value)} type="password" required minLength={8}
+              className="mt-1 h-11 w-full rounded-full border border-border bg-background px-4 text-sm outline-none focus:border-primary" />
+          </div>
+        </div>
+
+        <div className="mt-6 flex items-center gap-4">
+          <button type="submit" disabled={pwSaving}
+            className="rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-glow disabled:opacity-60">
+            {pwSaving ? "Updating…" : "Update password"}
+          </button>
+          {pwSaved && (
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+              <Check className="h-4 w-4" /> Updated
+            </span>
+          )}
+        </div>
+      </form>
     </div>
   );
 }
