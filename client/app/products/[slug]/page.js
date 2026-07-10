@@ -18,7 +18,8 @@ import {
 import { PageHeader } from "@/components/store/PageHeader";
 import { ProductCard } from "@/components/store/ProductCard";
 import { findProductBySlug, fmt, relatedProducts } from "@/lib/store-data";
-import { useCart, useWishlist } from "@/lib/store-context";
+import { useCart, useWishlist, useAuth } from "@/lib/store-context";
+import { useToast } from "@/components/ui/toast";
 
 export default function ProductPage({ params }) {
   const { slug } = use(params);
@@ -27,7 +28,25 @@ export default function ProductPage({ params }) {
 
   const cart = useCart();
   const wish = useWishlist();
+  const { isLoggedIn } = useAuth();
+  const toast = useToast();
   const router = useRouter();
+
+  const guardedAddToCart = () => {
+    if (!isLoggedIn) { toast({ message: "Please sign in to add items to your cart.", type: "info" }); return; }
+    cart.add(product.id, qty);
+  };
+
+  const guardedBuyNow = () => {
+    if (!isLoggedIn) { toast({ message: "Please sign in to continue.", type: "info" }); return; }
+    cart.add(product.id, qty);
+    router.push("/checkout/shipping");
+  };
+
+  const guardedWishlist = () => {
+    if (!isLoggedIn) { toast({ message: "Please sign in to save items to your wishlist.", type: "info" }); return; }
+    wish.toggle(product.id);
+  };
 
   const [activeImg, setActiveImg] = useState(0);
   const [qty, setQty] = useState(1);
@@ -192,24 +211,21 @@ export default function ProductPage({ params }) {
 
             <div className="mt-6 flex flex-wrap gap-3">
               <button
-                onClick={() => cart.add(product.id, qty)}
+                onClick={guardedAddToCart}
                 disabled={!inStock}
                 className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:bg-primary-glow disabled:opacity-50 sm:flex-none sm:px-8"
               >
                 Add to Cart
               </button>
               <button
-                onClick={() => {
-                  cart.add(product.id, qty);
-                  router.push("/checkout/shipping");
-                }}
+                onClick={guardedBuyNow}
                 disabled={!inStock}
                 className="inline-flex h-12 flex-1 items-center justify-center rounded-full bg-accent px-6 text-sm font-semibold text-accent-foreground transition hover:bg-accent/90 disabled:opacity-50 sm:flex-none sm:px-8"
               >
                 Buy Now
               </button>
               <button
-                onClick={() => wish.toggle(product.id)}
+                onClick={guardedWishlist}
                 aria-label="Wishlist"
                 className="grid h-12 w-12 place-items-center rounded-full border border-border bg-card transition hover:bg-secondary"
               >
