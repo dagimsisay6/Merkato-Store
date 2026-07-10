@@ -13,6 +13,22 @@ async function findById(id) {
   return rows[0] || null;
 }
 
+async function findAll({ page = 1, limit = 20, search } = {}) {
+  const offset = (Number(page) - 1) * Number(limit);
+  const params = [];
+  let where = "";
+  if (search) {
+    params.push(`%${search}%`);
+    where = `WHERE name ILIKE $1 OR email ILIKE $1`;
+  }
+  params.push(Number(limit), offset);
+  const [data, count] = await Promise.all([
+    pool.query(`SELECT ${PUBLIC_FIELDS} FROM users ${where} ORDER BY created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`, params),
+    pool.query(`SELECT COUNT(*) FROM users ${where}`, params.slice(0, -2)),
+  ]);
+  return { users: data.rows, total: Number(count.rows[0].count) };
+}
+
 async function create({ name, email, password }) {
   const hash = await bcrypt.hash(password, 12);
   const { rows } = await pool.query(
@@ -30,6 +46,27 @@ async function update(id, { name, phone, avatar }) {
   return rows[0];
 }
 
+async function updateRole(id, role) {
+  const { rows } = await pool.query(
+    `UPDATE users SET role=$1, updated_at=NOW() WHERE id=$2 RETURNING ${PUBLIC_FIELDS}`,
+    [role, id]
+  );
+  return rows[0] || null;
+}
+
+async function updatePassword(id, password) {
+  const hash = await bcrypt.hash(password, 12);
+  await pool.query("UPDATE users SET password=$1, updated_at=NOW() WHERE id=$2", [hash, id]);
+}
+
+async function disable(id) {
+  const { rows } = await pool.query(
+    `UPDATE users SET role='disabled', updated_at=NOW() WHERE id=$1 RETURNING ${PUBLIC_FIELDS}`,
+    [id]
+  );
+  return rows[0] || null;
+}
+
 async function updateAddresses(id, addresses) {
   const { rows } = await pool.query(
     `UPDATE users SET addresses=$1, updated_at=NOW() WHERE id=$2 RETURNING ${PUBLIC_FIELDS}`,
@@ -38,8 +75,16 @@ async function updateAddresses(id, addresses) {
   return rows[0];
 }
 
+async function updateWishlist(id, wishlist) {
+  const { rows } = await pool.query(
+    `UPDATE users SET wishlist=$1, updated_at=NOW() WHERE id=$2 RETURNING ${PUBLIC_FIELDS}`,
+    [wishlist, id]
+  );
+  return rows[0];
+}
+
 function comparePassword(candidate, hash) {
   return bcrypt.compare(candidate, hash);
 }
 
-module.exports = { findByEmail, findById, create, update, updateAddresses, comparePassword };
+module.exports = { findByEmail, findById, findAll, create, update, updateRole, updatePassword, disable, updateAddresses, updateWishlist, comparePassword };
