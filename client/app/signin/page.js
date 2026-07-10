@@ -2,21 +2,35 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { useAuth } from "@/lib/store-context";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { signin } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [keepSignedIn, setKeepSignedIn] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    console.log("Signing in:", { email, password, keepSignedIn });
+    setError("");
+    try {
+      const user = await signin(email, password);
+      const redirect = searchParams.get("redirect");
+      if (user.role === "admin") {
+        router.push(redirect || "/admin-dashboard");
+      } else {
+        router.push(redirect || "/account");
+      }
+    } catch (err) {
+      setError(err.message);
+    }
     setLoading(false);
   };
 
@@ -57,6 +71,9 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {error && (
+            <p className="rounded-xl bg-ember/10 px-4 py-3 text-sm font-medium text-ember">{error}</p>
+          )}
           <div>
             <label className="block text-[10px] font-bold text-muted-foreground tracking-widest mb-2 uppercase">Email</label>
             <div className="relative">
@@ -92,16 +109,6 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
-
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={keepSignedIn}
-              onChange={(e) => setKeepSignedIn(e.target.checked)}
-              className="h-4 w-4 accent-primary rounded"
-            />
-            <span className="text-sm text-muted-foreground select-none">Keep me signed in</span>
-          </label>
 
           <button
             type="submit"
