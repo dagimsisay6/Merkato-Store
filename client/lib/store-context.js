@@ -5,6 +5,9 @@ import { PRODUCTS } from "./store-data";
 
 const CartContext = createContext(null);
 const WishContext = createContext(null);
+const AuthContext = createContext(null);
+
+const BASE = process.env.NEXT_PUBLIC_API_URL;
 
 function useLocal(key, initial) {
   const [v, setV] = useState(initial);
@@ -21,11 +24,22 @@ function useLocal(key, initial) {
 }
 
 export function StoreProvider({ children }) {
-  const [items, setItems] = useLocal("merkato.cart", [
-    { id: "1", qty: 1 },
-    { id: "3", qty: 2 },
-  ]);
-  const [wish, setWish] = useLocal("merkato.wish", ["2", "4"]);
+  const [items, setItems] = useLocal("merkato.cart", []);
+  const [wish, setWish] = useLocal("merkato.wish", []);
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
+
+  // Rehydrate auth from localStorage on mount
+  useEffect(() => {
+    try {
+      const t = localStorage.getItem("merkato.token");
+      const u = localStorage.getItem("merkato.user");
+      if (t && u) {
+        setToken(t);
+        setUser(JSON.parse(u));
+      }
+    } catch {}
+  }, []);
 
   const detailed = items
     .map(i => {
@@ -51,7 +65,7 @@ export function StoreProvider({ children }) {
     clear: () => setItems([]),
   };
 
-  const wishlist= {
+  const wishlist = {
     ids: wish,
     has: id => wish.includes(id),
     toggle: id => setWish(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])),
@@ -62,13 +76,68 @@ export function StoreProvider({ children }) {
     },
   };
 
+  const auth = {
+    user,
+    token,
+    isAdmin: user?.role === "admin",
+    isLoggedIn: !!user,
+    signin: async (email, password) => {
+      const res = await fetch(`${BASE}/auth/signin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Sign in failed");
+      localStorage.setItem("merkato.token", data.token);
+      localStorage.setItem("merkato.user", JSON.stringify(data.user));
+      // Set cookie for middleware
+      document.cookie = `merkato.token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}`;
+      document.cookie = `merkato.role=${data.user.role}; path=/; max-age=${7 * 24 * 60 * 60}`;
+      setToken(data.token);
+      setUser(data.user);
+      return data.user;
+    },
+    signup: async (name, email, password) => {
+      const res = await fetch(`${BASE}/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Sign up failed");
+      localStorage.setItem("merkato.token", data.token);
+      localStorage.setItem("merkato.user", JSON.stringify(data.user));
+      document.cookie = `merkato.token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}`;
+      document.cookie = `merkato.role=${data.user.role}; path=/; max-age=${7 * 24 * 60 * 60}`;
+      setToken(data.token);
+      setUser(data.user);
+      return data.user;
+    },
+    signout: () => {
+      localStorage.removeItem("merkato.token");
+      localStorage.removeItem("merkato.user");
+      document.cookie = "merkato.token=; path=/; max-age=0";
+      document.cookie = "merkato.role=; path=/; max-age=0";
+      setToken(null);
+      setUser(null);
+    },
+  };
+
   return (
-    <CartContext.Provider value={cart}>
-      <WishContext.Provider value={wishlist}>{children}</WishContext.Provider>
-    </CartContext.Provider>
+    <AuthContext.Provider value={auth}>
+      <CartContext.Provider value={cart}>
+        <WishContext.Provider value={wishlist}>{children}</WishContext.Provider>
+      </CartContext.Provider>
+    </AuthContext.Provider>
   );
 }
 
+export function useAuth() {
+  const a = useContext(AuthContext);
+  if (!a) throw new Error("useAuth outside StoreProvider");
+  return a;
+}
 export function useCart() {
   const c = useContext(CartContext);
   if (!c) throw new Error("useCart outside StoreProvider");
