@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/lib/store-context";
 
 const NAV = [
   { href: "/admin-dashboard",          icon: LayoutDashboard, label: "Dashboard", exact: true },
@@ -23,6 +24,7 @@ const NAV = [
 export default function AdminLayout({ children }) {
   const path = usePathname();
   const router = useRouter();
+  const { signout } = useAuth();
   const [open, setOpen] = useState(false);
 
   return (
@@ -48,7 +50,7 @@ export default function AdminLayout({ children }) {
             ← Store
           </Link>
           <button
-            onClick={() => router.push("/signin")}
+            onClick={() => { signout(); router.push("/signin"); }}
             className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-ember hover:bg-ember/10"
           >
             <LogOut className="h-3.5 w-3.5" /> Sign out
