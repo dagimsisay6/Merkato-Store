@@ -4,20 +4,29 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, User, Mail, Lock } from "lucide-react";
+import { useAuth } from "@/lib/store-context";
 
 export default function SignupPage() {
   const router = useRouter();
+  const { signup } = useAuth();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    console.log("Registering:", { fullName, email, password, agreeToTerms });
+    setError("");
+    try {
+      await signup(fullName, email, password);
+      router.push("/account");
+    } catch (err) {
+      setError(err.message);
+    }
     setLoading(false);
   };
 
@@ -35,6 +44,9 @@ export default function SignupPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {error && (
+            <p className="rounded-xl bg-ember/10 px-4 py-3 text-sm font-medium text-ember">{error}</p>
+          )}
           <div>
             <label className="block text-[10px] font-bold text-muted-foreground tracking-widest mb-2 uppercase">Full Name</label>
             <div className="relative">
