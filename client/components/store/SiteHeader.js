@@ -21,7 +21,7 @@ import {
   TRENDING_SEARCHES,
   fmt,
 } from "@/lib/store-data";
-import { useCart, useWishlist } from "@/lib/store-context";
+import { useCart, useWishlist, useAuth } from "@/lib/store-context";
 
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
@@ -30,6 +30,7 @@ export function SiteHeader() {
   const [q, setQ] = useState("");
   const cart = useCart();
   const wishlist = useWishlist();
+  const { isLoggedIn } = useAuth();
   const router = useRouter();
   const path = usePathname();
   const inputRef = useRef(null);
@@ -269,7 +270,7 @@ export function SiteHeader() {
                 )}
               </Link>
               <Link
-                href="/account"
+                href={isLoggedIn ? "/account" : "/signin"}
                 aria-label="Account"
                 className="hidden h-10 w-10 place-items-center rounded-full bg-secondary transition hover:bg-muted md:grid"
               >
@@ -406,7 +407,7 @@ export function SiteHeader() {
                   About
                 </Link>
                 <Link
-                  href="/account"
+                  href={isLoggedIn ? "/account" : "/signin"}
                   className="block rounded-lg px-3 py-2 hover:bg-secondary"
                 >
                   My Account

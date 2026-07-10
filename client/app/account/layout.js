@@ -1,27 +1,44 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
-  User, Package, MapPin, Heart,
-  Settings, Star, LogOut, Home as HomeIcon,
+  User,
+  Package,
+  MapPin,
+  Heart,
+  Settings,
+  Star,
+  LogOut,
+  Home as HomeIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/store-context";
 
 const NAV = [
-  { to: "/account",           icon: HomeIcon, label: "Dashboard", exact: true },
-  { to: "/account/profile",   icon: User,     label: "Profile" },
-  { to: "/account/orders",    icon: Package,  label: "Orders" },
-  { to: "/account/addresses", icon: MapPin,   label: "Addresses" },
-  { to: "/account/wishlist",  icon: Heart,    label: "Wishlist" },
-  { to: "/account/reviews",   icon: Star,     label: "Reviews" },
-  { to: "/account/settings",  icon: Settings, label: "Settings" },
+  { to: "/account", icon: HomeIcon, label: "Dashboard", exact: true },
+  { to: "/account/profile", icon: User, label: "Profile" },
+  { to: "/account/orders", icon: Package, label: "Orders" },
+  { to: "/account/addresses", icon: MapPin, label: "Addresses" },
+  { to: "/account/wishlist", icon: Heart, label: "Wishlist" },
+  { to: "/account/reviews", icon: Star, label: "Reviews" },
+  { to: "/account/settings", icon: Settings, label: "Settings" },
 ];
 
 export default function AccountLayout({ children }) {
   const path = usePathname();
   const router = useRouter();
-  const { user, signout } = useAuth();
+  const { user, signout, isLoggedIn } = useAuth();
+
+  // Client-side guard for hydration gap
+  useEffect(() => {
+    if (isLoggedIn === false) {
+      router.replace(`/signin?redirect=${encodeURIComponent(path)}`);
+    }
+  }, [isLoggedIn]);
+
+  // Don't render anything until auth is confirmed
+  if (!isLoggedIn) return null;
 
   function handleSignout() {
     signout();
@@ -40,9 +57,7 @@ export default function AccountLayout({ children }) {
               <h1 className="font-display text-2xl font-extrabold sm:text-3xl">
                 Hi, {user?.name ?? "there"}
               </h1>
-              <p className="text-sm text-muted-foreground">
-                {user?.email}
-              </p>
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
             </div>
           </div>
         </div>
@@ -53,14 +68,20 @@ export default function AccountLayout({ children }) {
           {NAV.map((n) => {
             const active = n.exact ? path === n.to : path.startsWith(n.to);
             return (
-              <Link key={n.to} href={n.to}
+              <Link
+                key={n.to}
+                href={n.to}
                 className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition ${active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}
               >
-                <n.icon className="h-3.5 w-3.5" />{n.label}
+                <n.icon className="h-3.5 w-3.5" />
+                {n.label}
               </Link>
             );
           })}
-          <button onClick={handleSignout} className="inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold text-ember hover:bg-ember/10">
+          <button
+            onClick={handleSignout}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold text-ember hover:bg-ember/10"
+          >
             <LogOut className="h-3.5 w-3.5" /> Sign out
           </button>
         </nav>
@@ -71,14 +92,20 @@ export default function AccountLayout({ children }) {
               {NAV.map((n) => {
                 const active = n.exact ? path === n.to : path.startsWith(n.to);
                 return (
-                  <Link key={n.to} href={n.to}
+                  <Link
+                    key={n.to}
+                    href={n.to}
                     className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"}`}
                   >
-                    <n.icon className="h-4 w-4" />{n.label}
+                    <n.icon className="h-4 w-4" />
+                    {n.label}
                   </Link>
                 );
               })}
-              <button onClick={handleSignout} className="mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ember hover:bg-ember/10">
+              <button
+                onClick={handleSignout}
+                className="mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ember hover:bg-ember/10"
+              >
                 <LogOut className="h-4 w-4" /> Sign out
               </button>
             </nav>
