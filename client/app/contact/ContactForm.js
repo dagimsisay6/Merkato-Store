@@ -9,9 +9,11 @@ import {
   User,
   LogIn,
   CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/store-context";
+import { Alert } from "@/components/ui/alert";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
@@ -21,6 +23,7 @@ export default function ContactForm() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   // Pre-fill from account once mounted
   const [prefilled, setPrefilled] = useState(false);
@@ -31,11 +34,25 @@ export default function ContactForm() {
 
   function set(k, v) {
     setForm((p) => ({ ...p, [k]: v }));
+    if (fieldErrors[k]) setFieldErrors((p) => ({ ...p, [k]: "" }));
+  }
+
+  function validate() {
+    const e = {};
+    if (!form.name.trim()) e.name = "Full name is required.";
+    if (!form.email.trim()) e.email = "Email address is required.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Enter a valid email address.";
+    if (!form.subject.trim()) e.subject = "Subject is required.";
+    if (!form.message.trim()) e.message = "Message cannot be empty.";
+    else if (form.message.trim().length < 10) e.message = "Message must be at least 10 characters.";
+    return e;
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+    const e2 = validate();
+    if (Object.keys(e2).length) { setFieldErrors(e2); return; }
     setLoading(true);
     try {
       const res = await fetch(`${BASE}/contact`, {
@@ -177,8 +194,8 @@ export default function ContactForm() {
         </h2>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Full Name" value={form.name} onChange={(v) => set("name", v)} required />
-          <Field label="Email Address" type="email" value={form.email} onChange={(v) => set("email", v)} required />
+          <Field label="Full Name" value={form.name} onChange={(v) => set("name", v)} error={fieldErrors.name} />
+          <Field label="Email Address" type="email" value={form.email} onChange={(v) => set("email", v)} error={fieldErrors.email} />
         </div>
 
         <Field label="Phone Number (optional)" type="tel" value={form.phone} onChange={(v) => set("phone", v)} />
@@ -187,27 +204,25 @@ export default function ContactForm() {
           label="Subject"
           value={form.subject}
           onChange={(v) => set("subject", v)}
-          required
+          error={fieldErrors.subject}
         />
 
         <div>
-          <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            Message <span className="text-ember">*</span>
-          </label>
+          <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Message</label>
           <textarea
-            required
             value={form.message}
             onChange={(e) => set("message", e.target.value)}
             rows={5}
             placeholder="Describe your issue or question in detail…"
-            className="mt-1 w-full rounded-2xl border border-border bg-background p-3 text-sm outline-none focus:border-primary resize-none"
+            className={`mt-1 w-full rounded-2xl border bg-background p-3 text-sm outline-none focus:border-primary resize-none ${
+              fieldErrors.message ? "border-red-400 focus:border-red-400" : "border-border"
+            }`}
           />
+          {fieldErrors.message && <FieldError message={fieldErrors.message} />}
         </div>
 
         {error && (
-          <p className="rounded-xl bg-ember/10 px-4 py-2.5 text-sm font-medium text-ember">
-            {error}
-          </p>
+          <Alert variant="error" title="Failed to send" message={error} onDismiss={() => setError("")} />
         )}
 
         <button
@@ -223,19 +238,28 @@ export default function ContactForm() {
   );
 }
 
-function Field({ label, value, onChange, type = "text", required = false }) {
+function Field({ label, value, onChange, type = "text", error }) {
   return (
     <div>
-      <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-        {label} {required && <span className="text-ember">*</span>}
-      </label>
+      <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</label>
       <input
-        required={required}
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-full border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary transition"
+        className={`mt-1 w-full rounded-full border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary transition ${
+          error ? "border-red-400 focus:border-red-400" : "border-border"
+        }`}
       />
+      {error && <FieldError message={error} />}
     </div>
+  );
+}
+
+function FieldError({ message }) {
+  return (
+    <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-500">
+      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+      {message}
+    </p>
   );
 }

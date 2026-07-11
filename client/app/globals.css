@@ -90,6 +90,11 @@
   100% { transform: scale(1); }
 }
 
+@keyframes grow {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
 :root {
   --radius: 1rem;
 

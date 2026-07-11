@@ -7,6 +7,7 @@ import { MapPin, CreditCard, Loader2 } from "lucide-react";
 import { useCart, useAuth } from "@/lib/store-context";
 import { getSession, clearSession } from "@/lib/checkout-session";
 import { createOrder } from "@/lib/api";
+import { Alert } from "@/components/ui/alert";
 
 const fmt = (n) => `$${Number(n).toFixed(2)}`;
 const BASE = process.env.NEXT_PUBLIC_API_URL;
@@ -25,6 +26,7 @@ export default function ReviewPage() {
   useEffect(() => {
     const s = getSession();
     if (!s?.items?.length) { router.replace("/cart"); return; }
+    if (s.step !== "payment") { router.replace("/checkout/shipping"); return; }
     setSession(s);
     const ids = s.items.map((i) => i.id).join(",");
     fetch(`${BASE}/products/by-ids?ids=${ids}`)
@@ -146,7 +148,7 @@ export default function ReviewPage() {
       </div>
 
       {error && (
-        <p className="rounded-xl bg-red-500/10 px-4 py-3 text-sm font-medium text-red-500">{error}</p>
+        <Alert variant="error" title="Order failed" message={error} onDismiss={() => setError("")} />
       )}
 
       <div className="flex justify-between pt-2">

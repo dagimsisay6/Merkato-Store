@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Check, ShoppingBag } from "lucide-react";
+import { Check } from "lucide-react";
 import { fmt } from "@/lib/store-data";
 import { getSession } from "@/lib/checkout-session";
 import { useAuth } from "@/lib/store-context";
+import { Alert } from "@/components/ui/alert";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
@@ -24,17 +25,30 @@ export default function CheckoutLayout({ children }) {
 
   const [products, setProducts] = useState([]);
   const [sessionItems, setSessionItems] = useState([]);
+  const [guard, setGuard] = useState(null); // { variant, title, message, redirectTo }
 
   useEffect(() => {
     if (!mounted) return;
     if (!isLoggedIn) {
-      router.replace(`/signin?redirect=${encodeURIComponent(pathname)}`);
-      return;
+      setGuard({
+        variant: "warning",
+        title: "Sign in required",
+        message: "You need to be signed in to checkout. Redirecting you to sign in…",
+        redirectTo: `/signin?redirect=${encodeURIComponent(pathname)}`,
+      });
+      const t = setTimeout(() => router.replace(`/signin?redirect=${encodeURIComponent(pathname)}`), 2500);
+      return () => clearTimeout(t);
     }
     const session = getSession();
     if (!session?.items?.length) {
-      router.replace("/cart");
-      return;
+      setGuard({
+        variant: "info",
+        title: "No items selected",
+        message: "Your checkout session is empty. Redirecting you back to your cart…",
+        redirectTo: "/cart",
+      });
+      const t = setTimeout(() => router.replace("/cart"), 2500);
+      return () => clearTimeout(t);
     }
     setSessionItems(session.items);
     const ids = session.items.map((i) => i.id).join(",");
@@ -56,7 +70,20 @@ export default function CheckoutLayout({ children }) {
   const tax = subtotal * 0.05;
   const total = subtotal + shipping + tax;
 
-  if (!mounted || !isLoggedIn) return null;
+  if (!mounted) return null;
+
+  if (guard) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center px-4">
+        <div className="w-full max-w-md space-y-4">
+          <Alert variant={guard.variant} title={guard.title} message={guard.message} />
+          <div className="h-1 w-full overflow-hidden rounded-full bg-border">
+            <div className="h-full animate-[width_2.5s_linear] rounded-full bg-primary" style={{ animation: "grow 2.5s linear forwards" }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

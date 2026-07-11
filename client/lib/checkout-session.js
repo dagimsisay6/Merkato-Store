@@ -22,10 +22,9 @@ export function clearSession() {
 }
 
 export function startBuyNow(productId, qty = 1) {
-  setSession({ items: [{ id: productId, qty }], source: "buy_now" });
+  setSession({ items: [{ id: productId, qty }], source: "buy_now", step: "items" });
 }
 
 export function startCartCheckout(selectedItems) {
-  // selectedItems: [{ id, qty }]
-  setSession({ items: selectedItems, source: "cart" });
+  setSession({ items: selectedItems, source: "cart", step: "items" });
 }
