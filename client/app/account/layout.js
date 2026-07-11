@@ -28,17 +28,16 @@ const NAV = [
 export default function AccountLayout({ children }) {
   const path = usePathname();
   const router = useRouter();
-  const { user, signout, isLoggedIn } = useAuth();
+  const { user, signout, isLoggedIn, isAdmin, mounted } = useAuth();
 
-  // Client-side guard for hydration gap
   useEffect(() => {
-    if (isLoggedIn === false) {
-      router.replace(`/signin?redirect=${encodeURIComponent(path)}`);
-    }
-  }, [isLoggedIn]);
+    if (!mounted) return;
+    if (!isLoggedIn) router.replace(`/signin?redirect=${encodeURIComponent(path)}`);
+    else if (isAdmin) router.replace("/admin-dashboard");
+  }, [mounted, isLoggedIn, isAdmin]);
 
-  // Don't render anything until auth is confirmed
-  if (!isLoggedIn) return null;
+  if (!mounted) return null;
+  if (!isLoggedIn || isAdmin) return null;
 
   function handleSignout() {
     signout();
