@@ -25,9 +25,9 @@ function StatCard({ icon: Icon, label, value, color }) {
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [orders, setOrders] = useState([]);
-  const token = typeof window !== "undefined" ? localStorage.getItem("merkato.token") : null;
 
   useEffect(() => {
+    const token = localStorage.getItem("merkato.token");
     async function load() {
       try {
         const [pRes, uRes] = await Promise.all([
@@ -40,7 +40,7 @@ export default function AdminDashboard() {
       } catch {}
     }
     load();
-  }, [token]);
+  }, []);
 
   return (
     <div>
