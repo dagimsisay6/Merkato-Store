@@ -18,15 +18,13 @@ export default function WishlistPage() {
   useEffect(() => {
     if (!ids.length) { setProducts([]); setLoading(false); return; }
     setLoading(true);
-    Promise.all(
-      ids.map(id =>
-        fetch(`${BASE}/products/${id}`, { cache: "no-store" })
-          .then(r => r.ok ? r.json() : null).catch(() => null)
-      )
-    ).then(results => {
-      setProducts(results.map(r => r?.product ?? r).filter(Boolean));
-      setLoading(false);
-    });
+    fetch(`${BASE}/products/by-ids?ids=${ids.join(",")}`, { cache: "no-store" })
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)
+      .then(data => {
+        setProducts(data?.products ?? []);
+        setLoading(false);
+      });
   }, [ids.join(",")]);
 
   return (

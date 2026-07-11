@@ -49,15 +49,15 @@ export function StoreProvider({ children }) {
   useEffect(() => {
     const missing = cartItems.map(i => i.id).filter(id => !cartProducts[id]);
     if (!missing.length) return;
-    Promise.all(
-      missing.map(id =>
-        fetch(`${BASE}/products/${id}`).then(r => r.ok ? r.json() : null).catch(() => null)
-      )
-    ).then(results => {
-      const map = {};
-      results.forEach(r => { if (r?.product) map[r.product.id] = r.product; else if (r?.id) map[r.id] = r; });
-      setCartProducts(prev => ({ ...prev, ...map }));
-    });
+    fetch(`${BASE}/products/by-ids?ids=${missing.join(",")}`)
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)
+      .then(data => {
+        if (!data?.products) return;
+        const map = {};
+        data.products.forEach(p => { map[p.id] = p; });
+        setCartProducts(prev => ({ ...prev, ...map }));
+      });
   }, [cartItems]);
 
   // ── Debounced cart sync to server ───────────────────────
