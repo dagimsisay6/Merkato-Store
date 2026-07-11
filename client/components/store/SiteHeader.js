@@ -22,19 +22,40 @@ import {
   fmt,
 } from "@/lib/store-data";
 import { useCart, useWishlist, useAuth } from "@/lib/store-context";
+import { NotificationBell } from "@/components/store/NotificationBell";
 
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [recent, setRecent] = useState([]);
   const [q, setQ] = useState("");
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const cart = useCart();
   const wishlist = useWishlist();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isAdmin, user, signout, mounted: authMounted } = useAuth();
   const router = useRouter();
   const path = usePathname();
   const inputRef = useRef(null);
   const wrapRef = useRef(null);
+  const userMenuRef = useRef(null);
+
+  useEffect(() => {
+    setMounted(true);
+    try { setRecent(JSON.parse(localStorage.getItem("merkato.recent") || "[]")); } catch {}
+  }, []);
+
+  // close user menu on outside click
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const onClick = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target))
+        setUserMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [userMenuOpen]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -59,20 +80,13 @@ export function SiteHeader() {
     return () => document.removeEventListener("mousedown", onClick);
   }, [searchOpen]);
 
-  const recent = (() => {
-    try {
-      return JSON.parse(localStorage.getItem("merkato.recent") || "[]");
-    } catch {
-      return [];
-    }
-  })();
-
   const submit = (term) => {
     const t = (term ?? q).trim();
     if (!t) return;
     try {
       const next = [t, ...recent.filter((r) => r !== t)].slice(0, 5);
       localStorage.setItem("merkato.recent", JSON.stringify(next));
+      setRecent(next);
     } catch {}
     setSearchOpen(false);
     setQ("");
@@ -269,13 +283,75 @@ export function SiteHeader() {
                   </span>
                 )}
               </Link>
-              <Link
-                href={isLoggedIn ? "/account" : "/signin"}
-                aria-label="Account"
-                className="hidden h-10 w-10 place-items-center rounded-full bg-secondary transition hover:bg-muted md:grid"
-              >
-                <User className="h-5 w-5" />
-              </Link>
+              <NotificationBell />
+              {/* User menu */}
+              <div className="relative hidden md:block" ref={userMenuRef}>
+                <button
+                  onClick={() => setUserMenuOpen((v) => !v)}
+                  title={authMounted && isLoggedIn && user?.name ? user.name : undefined}
+                  aria-label="Account"
+                  className="grid h-10 w-10 place-items-center rounded-full bg-secondary transition hover:bg-muted"
+                >
+                  {authMounted && isLoggedIn && user?.name ? (
+                    <span className="text-sm font-bold text-primary">{user.name[0].toUpperCase()}</span>
+                  ) : (
+                    <User className="h-5 w-5" />
+                  )}
+                </button>
+                {userMenuOpen && (
+                  <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-border bg-card shadow-(--shadow-elegant)">
+                    {authMounted && isLoggedIn ? (
+                      <>
+                        <div className="border-b border-border px-4 py-3">
+                          <p className="text-sm font-bold text-foreground truncate">{user?.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                          {isAdmin && (
+                            <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">Admin</span>
+                          )}
+                        </div>
+                        <Link
+                          href={isAdmin ? "/admin-dashboard" : "/account"}
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium hover:bg-secondary"
+                        >
+                          <User className="h-4 w-4" />
+                          {isAdmin ? "Admin Dashboard" : "My Account"}
+                        </Link>
+                        {!isAdmin && (
+                          <>
+                            <Link href="/account/orders" onClick={() => setUserMenuOpen(false)}
+                              className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium hover:bg-secondary">
+                              <ShoppingBag className="h-4 w-4" /> My Orders
+                            </Link>
+                            <Link href="/account/wishlist" onClick={() => setUserMenuOpen(false)}
+                              className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium hover:bg-secondary">
+                              <Heart className="h-4 w-4" /> Wishlist
+                            </Link>
+                          </>
+                        )}
+                        <div className="border-t border-border">
+                          <button
+                            onClick={() => { signout(); setUserMenuOpen(false); router.push("/signin"); }}
+                            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-ember hover:bg-ember/10">
+                            Sign out
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Link href="/signin" onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium hover:bg-secondary">
+                          Sign in
+                        </Link>
+                        <Link href="/signup" onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium hover:bg-secondary">
+                          Create account
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
               <button
                 onClick={() => setMobileNavOpen((v) => !v)}
                 aria-label="Menu"
@@ -407,11 +483,17 @@ export function SiteHeader() {
                   About
                 </Link>
                 <Link
-                  href={isLoggedIn ? "/account" : "/signin"}
+                  href={mounted ? (isLoggedIn ? (isAdmin ? "/admin-dashboard" : "/account") : "/signin") : "/signin"}
                   className="block rounded-lg px-3 py-2 hover:bg-secondary"
                 >
-                  My Account
+                  {mounted && isLoggedIn ? (isAdmin ? "Admin Dashboard" : "My Account") : "Sign in"}
                 </Link>
+                {mounted && isLoggedIn && !isAdmin && (
+                  <>
+                    <Link href="/account/orders" className="block rounded-lg px-3 py-2 hover:bg-secondary">My Orders</Link>
+                    <Link href="/account/wishlist" className="block rounded-lg px-3 py-2 hover:bg-secondary">Wishlist</Link>
+                  </>
+                )}
                 <Link
                   href="/forgot-password"
                   className="block rounded-lg px-3 py-2 hover:bg-secondary"
