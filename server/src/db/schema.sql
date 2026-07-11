@@ -82,6 +82,28 @@ CREATE TABLE IF NOT EXISTS reviews (
   UNIQUE (user_id, product_id)
 );
 
+CREATE TABLE IF NOT EXISTS contact_messages (
+  id             SERIAL PRIMARY KEY,
+  name           TEXT NOT NULL,
+  email          TEXT NOT NULL,
+  phone          TEXT,
+  subject        TEXT NOT NULL,
+  message        TEXT NOT NULL,
+  status         TEXT NOT NULL DEFAULT 'unread' CHECK (status IN ('unread','read','replied','resolved','archived')),
+  assigned_admin INT REFERENCES users(id) ON DELETE SET NULL,
+  is_deleted     BOOLEAN DEFAULT FALSE,
+  created_at     TIMESTAMPTZ DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS message_replies (
+  id         SERIAL PRIMARY KEY,
+  message_id INT NOT NULL REFERENCES contact_messages(id) ON DELETE CASCADE,
+  admin_id   INT REFERENCES users(id) ON DELETE SET NULL,
+  reply      TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS orders (
   id               SERIAL PRIMARY KEY,
   user_id          INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
