@@ -200,3 +200,47 @@ export async function subscribeNewsletter(email) {
 export async function createOrder(payload, token) {
   return post("/orders", payload, token);
 }
+
+// messages (admin)
+
+export async function getAdminMessages({ page = 1, limit = 20, status, search } = {}, token) {
+  const params = new URLSearchParams({ page, limit });
+  if (status && status !== "all") params.set("status", status);
+  if (search) params.set("search", search);
+  return authGet(`/admin/messages?${params}`, token);
+}
+
+export async function getAdminMessage(id, token) {
+  return authGet(`/admin/messages/${id}`, token);
+}
+
+export async function updateMessageStatus(id, status, token) {
+  const res = await fetch(`${BASE}/admin/messages/${id}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error(`PATCH /admin/messages/${id}/status → ${res.status}`);
+  return res.json();
+}
+
+export async function replyToMessage(id, reply, token) {
+  return post(`/admin/messages/${id}/reply`, { reply }, token);
+}
+
+export async function deleteAdminMessage(id, token) {
+  return authDelete(`/admin/messages/${id}`, token);
+}
+
+export async function restoreAdminMessage(id, token) {
+  const res = await fetch(`${BASE}/admin/messages/${id}/restore`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`PATCH restore → ${res.status}`);
+  return res.json();
+}
+
+export async function getUnreadCount(token) {
+  return authGet("/admin/messages/unread-count", token);
+}

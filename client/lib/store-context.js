@@ -13,8 +13,17 @@ const AuthContext = createContext(null);
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
 export function StoreProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
+  const [user, setUser] = useState(() => {
+    if (typeof window === "undefined") return null;
+    try { return JSON.parse(localStorage.getItem("merkato.user")); } catch { return null; }
+  });
+  const [token, setToken] = useState(() => {
+    if (typeof window === "undefined") return null;
+    try { return localStorage.getItem("merkato.token"); } catch { return null; }
+  });
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   // cart: [{ id, qty, product }]  — product details merged after fetch
   const [cartItems, setCartItems] = useState([]); // [{ id, qty }]
@@ -23,17 +32,9 @@ export function StoreProvider({ children }) {
 
   const syncTimer = useRef(null);
 
-  // ── Rehydrate auth ──────────────────────────────────────
+  // ── Load cart + wishlist after mount when token is ready ──
   useEffect(() => {
-    try {
-      const t = localStorage.getItem("merkato.token");
-      const u = localStorage.getItem("merkato.user");
-      if (t && u) { setToken(t); setUser(JSON.parse(u)); }
-    } catch {}
-  }, []);
-
-  // ── Load cart + wishlist when user logs in ──────────────
-  useEffect(() => {
+    if (!mounted) return;
     if (!token) {
       setCartItems([]);
       setCartProducts({});
@@ -42,7 +43,7 @@ export function StoreProvider({ children }) {
     }
     getCart(token).then(d => setCartItems(d?.cart || [])).catch(() => {});
     getWishlist(token).then(d => setWishIds(d?.wishlist || [])).catch(() => {});
-  }, [token]);
+  }, [mounted, token]);
 
   // ── Fetch product details for cart items ────────────────
   useEffect(() => {
@@ -134,7 +135,7 @@ export function StoreProvider({ children }) {
 
   // ── Auth ────────────────────────────────────────────────
   const auth = {
-    user, token,
+    user, token, mounted,
     isAdmin: user?.role === "admin",
     isLoggedIn: !!user,
     signin: async (email, password) => {
