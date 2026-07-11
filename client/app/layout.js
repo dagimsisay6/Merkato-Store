@@ -4,6 +4,7 @@ import { StoreProvider } from "@/lib/store-context";
 import { SiteHeader } from "@/components/store/SiteHeader";
 import { SiteFooter } from "@/components/store/SiteFooter";
 import { ToastProvider } from "@/components/ui/toast";
+import { ConditionalShell } from "@/components/store/ConditionalShell";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -23,9 +24,9 @@ export default function RootLayout({ children }) {
       <body className="min-h-full flex flex-col">
         <StoreProvider>
           <ToastProvider>
-            <SiteHeader />
-            <main className="flex-1">{children}</main>
-            <SiteFooter />
+            <ConditionalShell>
+              <main className="flex-1">{children}</main>
+            </ConditionalShell>
           </ToastProvider>
         </StoreProvider>
       </body>
