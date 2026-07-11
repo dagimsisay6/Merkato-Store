@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, MapPin, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, MapPin, Check, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/store-context";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
+const EMPTY = { label: "", name: "", phone: "", line1: "", city: "", country: "", isDefault: false };
 
 export default function AddressesPage() {
   const { token } = useAuth();
   const [addrs, setAddrs] = useState([]);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ label: "", name: "", phone: "", line1: "", city: "", country: "", isDefault: false });
+  const [form, setForm] = useState(EMPTY);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     if (!token) return;
@@ -19,11 +21,24 @@ export default function AddressesPage() {
       .then((r) => r.json()).then((d) => setAddrs(d.addresses ?? [])).catch(() => {});
   }, [token]);
 
-  function openAdd() { setForm({ label: "", name: "", phone: "", line1: "", city: "", country: "", isDefault: false }); setEditing(null); setAdding(true); }
-  function openEdit(a) { setForm(a); setEditing(a.id); setAdding(true); }
+  function openAdd() { setForm(EMPTY); setEditing(null); setFieldErrors({}); setAdding(true); }
+  function openEdit(a) { setForm(a); setEditing(a.id); setFieldErrors({}); setAdding(true); }
+
+  function validate() {
+    const e = {};
+    if (!form.label.trim()) e.label = "Label is required.";
+    if (!form.name.trim()) e.name = "Full name is required.";
+    if (!form.phone.trim()) e.phone = "Phone is required.";
+    if (!form.line1.trim()) e.line1 = "Street address is required.";
+    if (!form.city.trim()) e.city = "City is required.";
+    if (!form.country.trim()) e.country = "Country is required.";
+    return e;
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length) { setFieldErrors(errs); return; }
     const url = `${BASE}/users/addresses${editing ? `/${editing}` : ""}`;
     const method = editing ? "PUT" : "POST";
     const res = await fetch(url, {
@@ -44,6 +59,11 @@ export default function AddressesPage() {
     const data = await res.json();
     setAddrs(data.addresses ?? []);
   }
+
+  const setField = (key, val) => {
+    setForm((f) => ({ ...f, [key]: val }));
+    setFieldErrors((p) => ({ ...p, [key]: "" }));
+  };
 
   return (
     <div className="space-y-6">
@@ -88,24 +108,32 @@ export default function AddressesPage() {
       </div>
 
       {adding && (
-        <form onSubmit={handleSubmit} className="space-y-4 rounded-3xl border border-border bg-card p-6">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4 rounded-3xl border border-border bg-card p-6">
           <h3 className="font-display text-lg font-bold">{editing ? "Edit address" : "New address"}</h3>
           <div className="grid gap-4 sm:grid-cols-2">
             {[["label", "Label (Home, Office…)"], ["name", "Full name"], ["phone", "Phone"], ["city", "City"], ["country", "Country"]].map(([key, label]) => (
               <div key={key}>
                 <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</label>
-                <input value={form[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} required
-                  className="mt-1 h-11 w-full rounded-full border border-border bg-background px-4 text-sm outline-none focus:border-primary" />
+                <input
+                  value={form[key]}
+                  onChange={(e) => setField(key, e.target.value)}
+                  className={`mt-1 h-11 w-full rounded-full border bg-background px-4 text-sm outline-none focus:border-primary ${fieldErrors[key] ? "border-red-400" : "border-border"}`}
+                />
+                {fieldErrors[key] && <FieldError message={fieldErrors[key]} />}
               </div>
             ))}
           </div>
           <div>
             <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Street address</label>
-            <input value={form.line1} onChange={(e) => setForm((f) => ({ ...f, line1: e.target.value }))} required
-              className="mt-1 h-11 w-full rounded-full border border-border bg-background px-4 text-sm outline-none focus:border-primary" />
+            <input
+              value={form.line1}
+              onChange={(e) => setField("line1", e.target.value)}
+              className={`mt-1 h-11 w-full rounded-full border bg-background px-4 text-sm outline-none focus:border-primary ${fieldErrors.line1 ? "border-red-400" : "border-border"}`}
+            />
+            {fieldErrors.line1 && <FieldError message={fieldErrors.line1} />}
           </div>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={form.isDefault} onChange={(e) => setForm((f) => ({ ...f, isDefault: e.target.checked }))} className="accent-primary" />
+            <input type="checkbox" checked={form.isDefault} onChange={(e) => setField("isDefault", e.target.checked)} className="accent-primary" />
             Set as default
           </label>
           <div className="flex gap-3">
@@ -115,5 +143,14 @@ export default function AddressesPage() {
         </form>
       )}
     </div>
+  );
+}
+
+function FieldError({ message }) {
+  return (
+    <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-500">
+      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+      {message}
+    </p>
   );
 }

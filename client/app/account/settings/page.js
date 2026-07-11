@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, Trash2, Eye, EyeOff } from "lucide-react";
+import { Lock, Trash2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/store-context";
 import { deleteAccount } from "@/lib/api";
 
@@ -16,6 +16,7 @@ export default function SettingsPage() {
   const [showPw, setShowPw] = useState(false);
   const [pwLoading, setPwLoading] = useState(false);
   const [pwMsg, setPwMsg] = useState(null);
+  const [pwFieldErrors, setPwFieldErrors] = useState({});
 
   const [delPassword, setDelPassword] = useState("");
   const [delLoading, setDelLoading] = useState(false);
@@ -24,10 +25,13 @@ export default function SettingsPage() {
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();
-    if (pwForm.newPassword !== pwForm.confirm) {
-      setPwMsg({ type: "error", text: "New passwords do not match." });
-      return;
-    }
+    const errs = {};
+    if (!pwForm.currentPassword) errs.currentPassword = "Current password is required.";
+    if (!pwForm.newPassword || pwForm.newPassword.length < 8) errs.newPassword = "New password must be at least 8 characters.";
+    if (!pwForm.confirm) errs.confirm = "Please confirm your new password.";
+    else if (pwForm.newPassword !== pwForm.confirm) errs.confirm = "Passwords do not match.";
+    if (Object.keys(errs).length) { setPwFieldErrors(errs); return; }
+    setPwFieldErrors({});
     setPwLoading(true);
     setPwMsg(null);
     try {
@@ -71,12 +75,13 @@ export default function SettingsPage() {
 
       {/* Change Password */}
       <Card icon={Lock} title="Security">
-        <form onSubmit={handlePasswordChange} className="space-y-4">
+        <form onSubmit={handlePasswordChange} noValidate className="space-y-4">
           <Field
             label="Current password"
             type={showPw ? "text" : "password"}
             value={pwForm.currentPassword}
-            onChange={v => setPwForm(p => ({ ...p, currentPassword: v }))}
+            onChange={v => { setPwForm(p => ({ ...p, currentPassword: v })); setPwFieldErrors(p => ({ ...p, currentPassword: "" })); }}
+            error={pwFieldErrors.currentPassword}
             suffix={
               <button type="button" onClick={() => setShowPw(v => !v)} className="text-muted-foreground">
                 {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -87,13 +92,15 @@ export default function SettingsPage() {
             label="New password"
             type={showPw ? "text" : "password"}
             value={pwForm.newPassword}
-            onChange={v => setPwForm(p => ({ ...p, newPassword: v }))}
+            onChange={v => { setPwForm(p => ({ ...p, newPassword: v })); setPwFieldErrors(p => ({ ...p, newPassword: "" })); }}
+            error={pwFieldErrors.newPassword}
           />
           <Field
             label="Confirm new password"
             type={showPw ? "text" : "password"}
             value={pwForm.confirm}
-            onChange={v => setPwForm(p => ({ ...p, confirm: v }))}
+            onChange={v => { setPwForm(p => ({ ...p, confirm: v })); setPwFieldErrors(p => ({ ...p, confirm: "" })); }}
+            error={pwFieldErrors.confirm}
           />
           {pwMsg && (
             <p className={`text-sm font-medium ${pwMsg.type === "success" ? "text-primary" : "text-red-500"}`}>
@@ -167,7 +174,7 @@ function Card({ icon: Icon, title, children }) {
   );
 }
 
-function Field({ label, type, value, onChange, suffix }) {
+function Field({ label, type, value, onChange, suffix, error }) {
   return (
     <div>
       <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</label>
@@ -176,13 +183,17 @@ function Field({ label, type, value, onChange, suffix }) {
           type={type}
           value={value}
           onChange={e => onChange(e.target.value)}
-          required
-          className="h-11 w-full rounded-full border border-border bg-background px-4 text-sm outline-none focus:border-primary"
+          className={`h-11 w-full rounded-full border bg-background px-4 text-sm outline-none focus:border-primary ${error ? "border-red-400" : "border-border"}`}
         />
         {suffix && (
           <span className="absolute right-4 top-1/2 -translate-y-1/2">{suffix}</span>
         )}
       </div>
+      {error && (
+        <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-500">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" />{error}
+        </p>
+      )}
     </div>
   );
 }

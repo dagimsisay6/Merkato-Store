@@ -12,6 +12,7 @@ import {
   Briefcase,
   Upload,
   CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import { PageHeader } from "@/components/store/PageHeader";
 
@@ -29,6 +30,7 @@ export default function ApplyPage() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const [form, setForm] = useState({
     position: "",
@@ -51,8 +53,10 @@ export default function ApplyPage() {
     }
   }, [searchParams]);
 
-  const set = (field) => (e) =>
+  const set = (field) => (e) => {
     setForm((f) => ({ ...f, [field]: e.target.value }));
+    setFieldErrors((p) => ({ ...p, [field]: "" }));
+  };
 
   const handleResume = (e) => {
     const file = e.target.files?.[0];
@@ -64,9 +68,18 @@ export default function ApplyPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const errs = {};
+    if (!form.position) errs.position = "Please select a position.";
+    if (!form.firstName.trim()) errs.firstName = "First name is required.";
+    if (!form.lastName.trim()) errs.lastName = "Last name is required.";
+    if (!form.email.trim()) errs.email = "Email address is required.";
+    if (!form.location.trim()) errs.location = "Location is required.";
+    if (!form.experience) errs.experience = "Please select your experience level.";
+    if (!form.resume) errs.resume = "Please upload your resume.";
+    if (!form.coverLetter.trim()) errs.coverLetter = "Cover letter is required.";
+    if (Object.keys(errs).length) { setFieldErrors(errs); return; }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1000)); // simulate submission
-    console.log("Application submitted:", form);
+    await new Promise((r) => setTimeout(r, 1000));
     setLoading(false);
     setSubmitted(true);
   };
@@ -129,15 +142,14 @@ export default function ApplyPage() {
           <ArrowLeft className="h-4 w-4" /> Back to open roles
         </Link>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} noValidate className="space-y-8">
           {/* Position */}
           <Section title="Position" icon={Briefcase}>
-            <Field label="Position Applying For">
+            <Field label="Position Applying For" error={fieldErrors.position}>
               <select
                 value={form.position}
                 onChange={set("position")}
-                required
-                className="input-field"
+                className={`input-field ${fieldErrors.position ? "border-red-400" : ""}`}
               >
                 <option value="" disabled>
                   Select a position
@@ -154,35 +166,32 @@ export default function ApplyPage() {
           {/* Personal Info */}
           <Section title="Personal Information" icon={User}>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="First Name">
+              <Field label="First Name" error={fieldErrors.firstName}>
                 <input
                   type="text"
                   value={form.firstName}
                   onChange={set("firstName")}
-                  required
                   placeholder="Amara"
-                  className="input-field"
+                  className={`input-field ${fieldErrors.firstName ? "border-red-400" : ""}`}
                 />
               </Field>
-              <Field label="Last Name">
+              <Field label="Last Name" error={fieldErrors.lastName}>
                 <input
                   type="text"
                   value={form.lastName}
                   onChange={set("lastName")}
-                  required
                   placeholder="Okafor"
-                  className="input-field"
+                  className={`input-field ${fieldErrors.lastName ? "border-red-400" : ""}`}
                 />
               </Field>
             </div>
-            <Field label="Email Address" icon={Mail}>
+            <Field label="Email Address" icon={Mail} error={fieldErrors.email}>
               <input
                 type="email"
                 value={form.email}
                 onChange={set("email")}
-                required
                 placeholder="you@email.com"
-                className="input-field"
+                className={`input-field ${fieldErrors.email ? "border-red-400" : ""}`}
               />
             </Field>
             <Field label="Phone Number" icon={Phone}>
@@ -194,26 +203,24 @@ export default function ApplyPage() {
                 className="input-field"
               />
             </Field>
-            <Field label="Current Location" icon={MapPin}>
+            <Field label="Current Location" icon={MapPin} error={fieldErrors.location}>
               <input
                 type="text"
                 value={form.location}
                 onChange={set("location")}
-                required
                 placeholder="Lagos, Nigeria"
-                className="input-field"
+                className={`input-field ${fieldErrors.location ? "border-red-400" : ""}`}
               />
             </Field>
           </Section>
 
           {/* Professional Info */}
           <Section title="Professional Details" icon={Briefcase}>
-            <Field label="Years of Experience">
+            <Field label="Years of Experience" error={fieldErrors.experience}>
               <select
                 value={form.experience}
                 onChange={set("experience")}
-                required
-                className="input-field"
+                className={`input-field ${fieldErrors.experience ? "border-red-400" : ""}`}
               >
                 <option value="" disabled>
                   Select range
@@ -253,7 +260,7 @@ export default function ApplyPage() {
 
           {/* Resume */}
           <Section title="Resume / CV" icon={Upload}>
-            <Field label="Upload Resume (PDF, DOC — max 5MB)">
+            <Field label="Upload Resume (PDF, DOC — max 5MB)" error={fieldErrors.resume}>
               <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border bg-secondary/40 px-6 py-8 transition hover:border-primary hover:bg-primary/5">
                 <Upload className="h-6 w-6 text-muted-foreground" />
                 <span className="text-sm font-medium text-muted-foreground">
@@ -262,9 +269,8 @@ export default function ApplyPage() {
                 <input
                   type="file"
                   accept=".pdf,.doc,.docx"
-                  onChange={handleResume}
+                  onChange={(e) => { handleResume(e); setFieldErrors((p) => ({ ...p, resume: "" })); }}
                   className="sr-only"
-                  required
                 />
               </label>
             </Field>
@@ -272,14 +278,13 @@ export default function ApplyPage() {
 
           {/* Cover Letter */}
           <Section title="Cover Letter" icon={Mail}>
-            <Field label="Tell us why you'd be a great fit">
+            <Field label="Tell us why you'd be a great fit" error={fieldErrors.coverLetter}>
               <textarea
                 value={form.coverLetter}
                 onChange={set("coverLetter")}
-                required
                 rows={6}
                 placeholder="Briefly describe your experience, why you're interested in Merkato Store, and what you'd bring to the team..."
-                className="input-field resize-none"
+                className={`input-field resize-none ${fieldErrors.coverLetter ? "border-red-400" : ""}`}
               />
             </Field>
           </Section>
@@ -344,13 +349,18 @@ function Section({ title, icon: Icon, children }) {
   );
 }
 
-function Field({ label, children }) {
+function Field({ label, children, error }) {
   return (
     <div className="space-y-1.5">
       <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
         {label}
       </label>
       {children}
+      {error && (
+        <p className="flex items-center gap-1.5 text-xs font-medium text-red-500">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" />{error}
+        </p>
+      )}
     </div>
   );
 }
