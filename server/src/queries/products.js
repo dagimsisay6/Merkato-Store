@@ -45,6 +45,11 @@ async function findBySlug(slug) {
   return rows[0] || null;
 }
 
+async function findById(id) {
+  const { rows } = await pool.query(`${WITH_CATEGORY} WHERE p.id = $1`, [id]);
+  return rows[0] || null;
+}
+
 async function create(data) {
   const { name, slug, brand, description, price, original_price, images, category_id, stock, rating, review_count, features, tags, is_featured, is_new_arrival, is_best_seller } = data;
   const { rows } = await pool.query(
@@ -56,10 +61,14 @@ async function create(data) {
 }
 
 async function update(id, data) {
-  const fields = Object.keys(data).map((k, i) => `${k}=$${i + 2}`).join(", ");
+  const allowed = ["name","slug","brand","description","price","original_price","images","category_id","stock","features","tags","is_featured","is_new_arrival","is_best_seller","is_active"];
+  const entries = Object.entries(data).filter(([k]) => allowed.includes(k));
+  if (!entries.length) return findById(id);
+  const fields = entries.map(([k], i) => `${k}=$${i + 2}`).join(", ");
+  const vals = entries.map(([, v]) => v);
   const { rows } = await pool.query(
     `UPDATE products SET ${fields}, updated_at=NOW() WHERE id=$1 RETURNING *`,
-    [id, ...Object.values(data)]
+    [id, ...vals]
   );
   return rows[0] || null;
 }
@@ -78,4 +87,4 @@ async function softDelete(id) {
   await pool.query("UPDATE products SET is_active=FALSE, updated_at=NOW() WHERE id=$1", [id]);
 }
 
-module.exports = { findAll, findBySlug, findByIds, create, update, softDelete };
+module.exports = { findAll, findBySlug, findById, findByIds, create, update, softDelete };
