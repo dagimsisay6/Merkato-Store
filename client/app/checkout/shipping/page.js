@@ -1,11 +1,17 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { COUNTRIES } from "@/lib/store-data";
 import { useRouter } from "next/navigation";
+import { getCountries } from "@/lib/api";
 
 export default function ShippingPage() {
   const router = useRouter();
+  const [countries, setCountries] = useState([]);
+
+  useEffect(() => {
+    getCountries().then(d => setCountries(d?.countries ?? []));
+  }, []);
 
   return (
     <form
@@ -34,7 +40,7 @@ export default function ShippingPage() {
       </div>
 
       <select className="h-11 w-full rounded-full border px-4">
-        {COUNTRIES.map((c) => (
+        {countries.map((c) => (
           <option key={c.code}>{c.name}</option>
         ))}
       </select>

@@ -25,7 +25,7 @@ export default function ReviewPage() {
 
         {cart.detailed.map(({ product, qty }) => (
           <div key={product.id} className="flex gap-3 border-b py-3">
-            <img src={product.img} className="h-14 w-14 rounded-lg" />
+            <img src={product.images?.[0] || null} className="h-14 w-14 rounded-lg object-cover" />
 
             <p className="flex-1">{product.name}</p>
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { fmt, imgSrc } from "@/lib/store-data";
+import { fmt } from "@/lib/store-data";
 import { useCart } from "@/lib/store-context";
 
 const STEPS = [
@@ -101,7 +101,7 @@ ${done ? "bg-primary" : "bg-border"}
                   >
                     <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
                       <img
-                        src={imgSrc(product.img)}
+                        src={product.images?.[0] || product.img || null}
                         className="h-full w-full object-cover"
                       />
 
