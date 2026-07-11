@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, User, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, User, Mail, Lock, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/store-context";
 
 export default function SignupPage() {
@@ -16,11 +16,21 @@ export default function SignupPage() {
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const clearField = (key) => setFieldErrors((p) => ({ ...p, [key]: "" }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
+    const errs = {};
+    if (!fullName.trim()) errs.fullName = "Full name is required.";
+    if (!email.trim()) errs.email = "Email is required.";
+    if (!password || password.length < 8) errs.password = "Password must be at least 8 characters.";
+    if (!agreeToTerms) errs.terms = "You must agree to the Terms & Privacy Policy.";
+    if (Object.keys(errs).length) { setFieldErrors(errs); return; }
+    setFieldErrors({});
+    setLoading(true);
     try {
       await signup(fullName, email, password);
       router.push("/account");
@@ -43,10 +53,11 @@ export default function SignupPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} noValidate className="space-y-5">
           {error && (
             <p className="rounded-xl bg-ember/10 px-4 py-3 text-sm font-medium text-ember">{error}</p>
           )}
+
           <div>
             <label className="block text-[10px] font-bold text-muted-foreground tracking-widest mb-2 uppercase">Full Name</label>
             <div className="relative">
@@ -54,12 +65,12 @@ export default function SignupPage() {
               <input
                 type="text"
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 border border-border rounded-full focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm bg-card text-foreground placeholder:text-muted-foreground"
+                onChange={(e) => { setFullName(e.target.value); clearField("fullName"); }}
+                className={`w-full pl-11 pr-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm bg-card text-foreground placeholder:text-muted-foreground ${fieldErrors.fullName ? "border-red-400" : "border-border"}`}
                 placeholder="Your full name"
-                required
               />
             </div>
+            {fieldErrors.fullName && <FieldError message={fieldErrors.fullName} />}
           </div>
 
           <div>
@@ -69,12 +80,12 @@ export default function SignupPage() {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 border border-border rounded-full focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm bg-card text-foreground placeholder:text-muted-foreground"
+                onChange={(e) => { setEmail(e.target.value); clearField("email"); }}
+                className={`w-full pl-11 pr-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm bg-card text-foreground placeholder:text-muted-foreground ${fieldErrors.email ? "border-red-400" : "border-border"}`}
                 placeholder="you@email.com"
-                required
               />
             </div>
+            {fieldErrors.email && <FieldError message={fieldErrors.email} />}
           </div>
 
           <div>
@@ -84,33 +95,34 @@ export default function SignupPage() {
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-11 pr-11 py-3 border border-border rounded-full focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm bg-card text-foreground placeholder:text-muted-foreground"
+                onChange={(e) => { setPassword(e.target.value); clearField("password"); }}
+                className={`w-full pl-11 pr-11 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm bg-card text-foreground placeholder:text-muted-foreground ${fieldErrors.password ? "border-red-400" : "border-border"}`}
                 placeholder="At least 8 characters"
-                required
-                minLength={8}
               />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
+            {fieldErrors.password && <FieldError message={fieldErrors.password} />}
           </div>
 
-          <label className="flex items-start gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={agreeToTerms}
-              onChange={(e) => setAgreeToTerms(e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-primary rounded"
-              required
-            />
-            <span className="text-xs text-muted-foreground select-none">
-              I agree to the{" "}
-              <Link href="/terms" className="font-bold text-primary hover:underline">Terms</Link>
-              {" "}&amp;{" "}
-              <Link href="/privacy-policy" className="font-bold text-primary hover:underline">Privacy Policy</Link>.
-            </span>
-          </label>
+          <div>
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={agreeToTerms}
+                onChange={(e) => { setAgreeToTerms(e.target.checked); clearField("terms"); }}
+                className="mt-0.5 h-4 w-4 accent-primary rounded"
+              />
+              <span className="text-xs text-muted-foreground select-none">
+                I agree to the{" "}
+                <Link href="/terms" className="font-bold text-primary hover:underline">Terms</Link>
+                {" "}&amp;{" "}
+                <Link href="/privacy-policy" className="font-bold text-primary hover:underline">Privacy Policy</Link>.
+              </span>
+            </label>
+            {fieldErrors.terms && <FieldError message={fieldErrors.terms} />}
+          </div>
 
           <button
             type="submit"
@@ -143,6 +155,15 @@ export default function SignupPage() {
   );
 }
 
+function FieldError({ message }) {
+  return (
+    <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-500">
+      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+      {message}
+    </p>
+  );
+}
+
 function GoogleIcon() {
   return (
     <svg className="h-4 w-4" viewBox="0 0 24 24">
@@ -153,4 +174,3 @@ function GoogleIcon() {
     </svg>
   );
 }
-
