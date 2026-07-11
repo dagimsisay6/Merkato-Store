@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Heart, ShoppingBag, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Heart, ShoppingBag, Zap, Trash2 } from "lucide-react";
 import { useWishlist, useAuth, useCart } from "@/lib/store-context";
 
 const fmt = (n) => `$${Number(n).toFixed(2)}`;
@@ -12,6 +13,7 @@ export default function WishlistPage() {
   const { ids, remove, moveToCart } = useWishlist();
   const { token } = useAuth();
   const cart = useCart();
+  const router = useRouter();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,6 +28,11 @@ export default function WishlistPage() {
         setLoading(false);
       });
   }, [ids.join(",")]);
+
+  const handleBuyNow = (p) => {
+    cart.buyNow(p.id, 1);
+    router.push("/checkout/shipping");
+  };
 
   return (
     <div className="space-y-6">
@@ -63,14 +70,14 @@ export default function WishlistPage() {
           {products.map((p) => (
             <div
               key={p.id}
-              className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4"
+              className="flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-nowrap"
             >
               <Link
                 href={`/products/${p.slug ?? p.id}`}
                 className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-muted"
               >
                 <img
-                  src={p.images?.[0] ?? p.img ?? ""}
+                  src={p.images?.[0] || null}
                   alt={p.name}
                   className="h-full w-full object-cover"
                 />
@@ -85,7 +92,13 @@ export default function WishlistPage() {
                 <p className="text-xs text-muted-foreground">{p.brand}</p>
                 <p className="mt-1 font-display font-bold text-accent">{fmt(p.price)}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => handleBuyNow(p)}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-xs font-semibold text-accent-foreground hover:bg-accent/90"
+                >
+                  <Zap className="h-3.5 w-3.5" /> Buy Now
+                </button>
                 <button
                   onClick={() => moveToCart(p.id)}
                   className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary-glow"

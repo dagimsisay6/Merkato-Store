@@ -5,6 +5,7 @@ import {
   getCart, saveCart,
   getWishlist, addToWishlist, removeFromWishlist,
 } from "./api";
+import { startBuyNow } from "./checkout-session";
 
 const CartContext = createContext(null);
 const WishContext = createContext(null);
@@ -105,6 +106,9 @@ export function StoreProvider({ children }) {
     clear: () => {
       setCartItems([]);
       if (token) saveCart([], token).catch(() => {});
+    },
+    buyNow: (id, qty = 1) => {
+      startBuyNow(Number(id), qty);
     },
   };
 

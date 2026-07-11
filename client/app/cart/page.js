@@ -2,22 +2,60 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Minus, Plus, Trash2, Tag, ShoppingBag, ArrowRight } from "lucide-react";
 import { PageHeader } from "@/components/store/PageHeader";
 import { useCart, useAuth } from "@/lib/store-context";
+import { startCartCheckout } from "@/lib/checkout-session";
 
 const fmt = (n) => `$${Number(n).toFixed(2)}`;
 
 export default function CartPage() {
   const cart = useCart();
   const { isLoggedIn } = useAuth();
+  const router = useRouter();
+  const [selected, setSelected] = useState(() => new Set());
   const [coupon, setCoupon] = useState("");
   const [applied, setApplied] = useState(null);
 
-  const discount = applied === "MERKATO10" ? cart.subtotal * 0.1 : 0;
-  const shipping = cart.subtotal > 50 ? 0 : cart.subtotal > 0 ? 4.99 : 0;
-  const tax = (cart.subtotal - discount) * 0.05;
-  const total = Math.max(0, cart.subtotal - discount + shipping + tax);
+  // Keep selected in sync when cart items change
+  const allIds = cart.detailed.map((d) => d.product.id);
+  const validSelected = new Set([...selected].filter((id) => allIds.includes(id)));
+
+  const toggleOne = (id) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    setSelected(
+      validSelected.size === allIds.length ? new Set() : new Set(allIds)
+    );
+  };
+
+  const selectedItems = cart.detailed.filter((d) =>
+    validSelected.has(d.product.id)
+  );
+
+  const subtotal = selectedItems.reduce(
+    (s, d) => s + Number(d.product.price) * d.qty,
+    0
+  );
+  const discount = applied === "MERKATO10" ? subtotal * 0.1 : 0;
+  const shipping = subtotal > 50 ? 0 : subtotal > 0 ? 4.99 : 0;
+  const tax = (subtotal - discount) * 0.05;
+  const total = Math.max(0, subtotal - discount + shipping + tax);
+
+  const handleCheckout = () => {
+    if (!validSelected.size) return;
+    startCartCheckout(
+      selectedItems.map((d) => ({ id: d.product.id, qty: d.qty }))
+    );
+    router.push("/checkout/shipping");
+  };
 
   return (
     <div>
@@ -27,7 +65,7 @@ export default function CartPage() {
         title="Your Cart"
         subtitle={
           cart.count > 0
-            ? `${cart.count} item${cart.count > 1 ? "s" : ""} ready to ship.`
+            ? `${cart.count} item${cart.count > 1 ? "s" : ""} in your cart.`
             : "Your cart is currently empty."
         }
       />
@@ -72,14 +110,47 @@ export default function CartPage() {
         ) : (
           <div className="grid gap-8 lg:grid-cols-[1fr_400px]">
             <div className="space-y-4">
+              {/* Select all */}
+              <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-card px-5 py-3">
+                <input
+                  type="checkbox"
+                  checked={validSelected.size === allIds.length && allIds.length > 0}
+                  onChange={toggleAll}
+                  className="h-4 w-4 accent-primary"
+                />
+                <span className="text-sm font-semibold">
+                  Select all ({allIds.length} items)
+                </span>
+                {validSelected.size > 0 && validSelected.size < allIds.length && (
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    {validSelected.size} selected
+                  </span>
+                )}
+              </label>
+
               {cart.detailed.map(({ product, qty }) => (
-                <div key={product.id} className="flex gap-4 rounded-2xl border border-border bg-card p-4">
+                <div
+                  key={product.id}
+                  className={`flex gap-3 rounded-2xl border bg-card p-4 transition ${
+                    validSelected.has(product.id) ? "border-primary/40" : "border-border"
+                  }`}
+                >
+                  {/* Checkbox */}
+                  <div className="flex items-start pt-1">
+                    <input
+                      type="checkbox"
+                      checked={validSelected.has(product.id)}
+                      onChange={() => toggleOne(product.id)}
+                      className="h-4 w-4 accent-primary"
+                    />
+                  </div>
+
                   <Link
                     href={`/products/${product.slug ?? product.id}`}
                     className="h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-32 sm:w-32"
                   >
                     <img
-                      src={product.images?.[0] ?? ""}
+                      src={product.images?.[0] || null}
                       alt={product.name}
                       className="h-full w-full object-cover"
                     />
@@ -99,7 +170,14 @@ export default function CartPage() {
                         </Link>
                       </div>
                       <button
-                        onClick={() => cart.remove(product.id)}
+                        onClick={() => {
+                          cart.remove(product.id);
+                          setSelected((prev) => {
+                            const next = new Set(prev);
+                            next.delete(product.id);
+                            return next;
+                          });
+                        }}
                         className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-red-500"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -135,6 +213,12 @@ export default function CartPage() {
               <div className="sticky top-32 space-y-4 rounded-2xl border border-border bg-card p-6">
                 <h3 className="font-display text-lg font-bold">Order summary</h3>
 
+                {validSelected.size === 0 && (
+                  <p className="rounded-xl bg-secondary px-4 py-3 text-sm text-muted-foreground">
+                    Select items above to see your total.
+                  </p>
+                )}
+
                 <div>
                   <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                     Coupon code
@@ -144,7 +228,7 @@ export default function CartPage() {
                       <Tag className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <input
                         value={coupon}
-                        onChange={e => setCoupon(e.target.value)}
+                        onChange={(e) => setCoupon(e.target.value)}
                         placeholder="Try MERKATO10"
                         className="h-10 w-full rounded-full border border-border bg-background pl-9 pr-3 text-sm outline-none"
                       />
@@ -165,9 +249,9 @@ export default function CartPage() {
                 </div>
 
                 <div className="space-y-2 border-t border-border pt-4 text-sm">
-                  <Row label="Subtotal" value={fmt(cart.subtotal)} />
-                  {discount > 0 && <Row label="Discount" value={`-${fmt(discount)}`} accent />}
-                  <Row label={shipping === 0 ? "Shipping (free)" : "Shipping (estimate)"} value={fmt(shipping)} />
+                  <Row label={`Subtotal (${validSelected.size} item${validSelected.size !== 1 ? "s" : ""})`} value={fmt(subtotal)} />
+                  {discount > 0 && <Row label="Discount (MERKATO10)" value={`-${fmt(discount)}`} accent />}
+                  <Row label={shipping === 0 ? "Shipping (free)" : "Shipping"} value={fmt(shipping)} />
                   <Row label="Tax (5%)" value={fmt(tax)} />
                 </div>
 
@@ -176,12 +260,13 @@ export default function CartPage() {
                   <p className="font-display text-2xl font-extrabold text-accent">{fmt(total)}</p>
                 </div>
 
-                <Link
-                  href="/checkout/shipping"
-                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold text-primary-foreground"
+                <button
+                  onClick={handleCheckout}
+                  disabled={validSelected.size === 0}
+                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  Checkout <ArrowRight className="h-4 w-4" />
-                </Link>
+                  Checkout {validSelected.size > 0 ? `(${validSelected.size})` : ""} <ArrowRight className="h-4 w-4" />
+                </button>
 
                 <Link href="/products" className="block text-center text-sm font-semibold text-muted-foreground">
                   Continue shopping

@@ -1,10 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Check } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import { Check, ShoppingBag } from "lucide-react";
 import { fmt } from "@/lib/store-data";
-import { useCart } from "@/lib/store-context";
+import { getSession } from "@/lib/checkout-session";
+import { useAuth } from "@/lib/store-context";
+
+const BASE = process.env.NEXT_PUBLIC_API_URL;
 
 const STEPS = [
   { path: "/checkout/shipping", label: "Shipping" },
@@ -14,67 +18,74 @@ const STEPS = [
 
 export default function CheckoutLayout({ children }) {
   const pathname = usePathname();
-
+  const router = useRouter();
+  const { isLoggedIn, mounted } = useAuth();
   const currentIdx = STEPS.findIndex((s) => pathname.startsWith(s.path));
 
-  const cart = useCart();
+  const [products, setProducts] = useState([]);
+  const [sessionItems, setSessionItems] = useState([]);
 
-  const shipping = cart.subtotal > 50 ? 0 : 4.99;
-  const tax = cart.subtotal * 0.05;
-  const total = cart.subtotal + shipping + tax;
+  useEffect(() => {
+    if (!mounted) return;
+    if (!isLoggedIn) {
+      router.replace(`/signin?redirect=${encodeURIComponent(pathname)}`);
+      return;
+    }
+    const session = getSession();
+    if (!session?.items?.length) {
+      router.replace("/cart");
+      return;
+    }
+    setSessionItems(session.items);
+    const ids = session.items.map((i) => i.id).join(",");
+    fetch(`${BASE}/products/by-ids?ids=${ids}`)
+      .then((r) => r.ok ? r.json() : null)
+      .catch(() => null)
+      .then((data) => setProducts(data?.products ?? []));
+  }, [mounted, isLoggedIn]);
+
+  const detailed = sessionItems
+    .map((si) => {
+      const product = products.find((p) => p.id === si.id);
+      return product ? { product, qty: si.qty } : null;
+    })
+    .filter(Boolean);
+
+  const subtotal = detailed.reduce((s, d) => s + Number(d.product.price) * d.qty, 0);
+  const shipping = subtotal > 50 ? 0 : subtotal > 0 ? 4.99 : 0;
+  const tax = subtotal * 0.05;
+  const total = subtotal + shipping + tax;
+
+  if (!mounted || !isLoggedIn) return null;
 
   return (
     <div>
       <section className="border-b border-border bg-gradient-to-br from-primary/5 via-background to-gold/10">
         <div className="mx-auto max-w-7xl px-4 py-8">
-          <Link
-            href="/cart"
-            className="text-xs font-semibold text-muted-foreground hover:text-primary"
-          >
+          <Link href="/cart" className="text-xs font-semibold text-muted-foreground hover:text-primary">
             ← Back to cart
           </Link>
-
-          <h1 className="mt-3 font-display text-3xl font-extrabold sm:text-4xl">
-            Checkout
-          </h1>
-
+          <h1 className="mt-3 font-display text-3xl font-extrabold sm:text-4xl">Checkout</h1>
           <div className="mt-6 flex items-center gap-2 overflow-x-auto sm:gap-4">
             {STEPS.map((step, i) => {
               const active = i === currentIdx;
               const done = i < currentIdx;
-
               return (
-                <div
-                  key={step.path}
-                  className="flex items-center gap-2 whitespace-nowrap"
-                >
-                  <div
-                    className={`grid h-8 w-8 place-items-center rounded-full text-xs font-bold
-${
-  done
-    ? "bg-primary text-primary-foreground"
-    : active
-      ? "bg-accent text-accent-foreground"
-      : "bg-secondary text-muted-foreground"
-}`}
-                  >
+                <div key={step.path} className="flex items-center gap-2 whitespace-nowrap">
+                  <div className={`grid h-8 w-8 place-items-center rounded-full text-xs font-bold ${
+                    done ? "bg-primary text-primary-foreground"
+                    : active ? "bg-accent text-accent-foreground"
+                    : "bg-secondary text-muted-foreground"
+                  }`}>
                     {done ? <Check className="h-4 w-4" /> : i + 1}
                   </div>
-
-                  <span
-                    className={`text-sm font-semibold 
-${active ? "text-foreground" : done ? "text-primary" : "text-muted-foreground"}
-`}
-                  >
+                  <span className={`text-sm font-semibold ${
+                    active ? "text-foreground" : done ? "text-primary" : "text-muted-foreground"
+                  }`}>
                     {step.label}
                   </span>
-
                   {i < STEPS.length - 1 && (
-                    <div
-                      className={`h-px w-8 sm:w-16 
-${done ? "bg-primary" : "bg-border"}
-`}
-                    />
+                    <div className={`h-px w-8 sm:w-16 ${done ? "bg-primary" : "bg-border"}`} />
                   )}
                 </div>
               );
@@ -93,55 +104,51 @@ ${done ? "bg-primary" : "bg-border"}
             <div className="sticky top-32 rounded-2xl border border-border bg-card p-6">
               <h3 className="font-display text-lg font-bold">Order summary</h3>
 
-              <div className="mt-4 space-y-3 max-h-64 overflow-y-auto">
-                {cart.detailed.map(({ product, qty }) => (
-                  <div
-                    key={product.id}
-                    className="flex items-center gap-3 text-sm"
-                  >
-                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
-                      <img
-                        src={product.images?.[0] || product.img || null}
-                        className="h-full w-full object-cover"
-                      />
-
-                      <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                        {qty}
-                      </span>
+              {detailed.length === 0 ? (
+                <div className="mt-4 space-y-2">
+                  {[...Array(sessionItems.length || 2)].map((_, i) => (
+                    <div key={i} className="h-14 animate-pulse rounded-xl bg-muted" />
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-4 max-h-64 space-y-3 overflow-y-auto">
+                  {detailed.map(({ product, qty }) => (
+                    <div key={product.id} className="flex items-center gap-3 text-sm">
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
+                        <img
+                          src={product.images?.[0] || null}
+                          alt={product.name}
+                          className="h-full w-full object-cover"
+                        />
+                        <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                          {qty}
+                        </span>
+                      </div>
+                      <p className="line-clamp-1 flex-1 font-medium">{product.name}</p>
+                      <p className="font-bold">{fmt(Number(product.price) * qty)}</p>
                     </div>
-
-                    <p className="line-clamp-1 flex-1 font-medium">
-                      {product.name}
-                    </p>
-
-                    <p className="font-bold">{fmt(product.price * qty)}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
 
               <div className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
                 <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>{fmt(cart.subtotal)}</span>
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-semibold">{fmt(subtotal)}</span>
                 </div>
-
                 <div className="flex justify-between">
-                  <span>Shipping</span>
-                  <span>{fmt(shipping)}</span>
+                  <span className="text-muted-foreground">{shipping === 0 ? "Shipping (free)" : "Shipping"}</span>
+                  <span className="font-semibold">{fmt(shipping)}</span>
                 </div>
-
                 <div className="flex justify-between">
-                  <span>Tax</span>
-                  <span>{fmt(tax)}</span>
+                  <span className="text-muted-foreground">Tax (5%)</span>
+                  <span className="font-semibold">{fmt(tax)}</span>
                 </div>
               </div>
 
-              <div className="mt-4 flex justify-between border-t pt-4">
-                <p className="font-bold">Total</p>
-
-                <p className="text-2xl font-extrabold text-accent">
-                  {fmt(total)}
-                </p>
+              <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">
+                <p className="font-display text-lg font-bold">Total</p>
+                <p className="font-display text-2xl font-extrabold text-accent">{fmt(total)}</p>
               </div>
             </div>
           </aside>
@@ -150,4 +157,3 @@ ${done ? "bg-primary" : "bg-border"}
     </div>
   );
 }
-
