@@ -142,6 +142,11 @@ export function StoreProvider({ children }) {
     user, token, mounted,
     isAdmin: user?.role === "admin",
     isLoggedIn: !!user,
+    updateUser: (updated) => {
+      const merged = { ...user, ...updated };
+      localStorage.setItem("merkato.user", JSON.stringify(merged));
+      setUser(merged);
+    },
     signin: async (email, password) => {
       const res = await fetch(`${BASE}/auth/signin`, {
         method: "POST",

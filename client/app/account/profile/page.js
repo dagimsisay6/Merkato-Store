@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/store-context";
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
 export default function ProfilePage() {
-  const { user, token } = useAuth();
+  const { user, token, updateUser } = useAuth();
   const [name, setName] = useState(user?.name ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [saved, setSaved] = useState(false);
@@ -35,6 +35,7 @@ export default function ProfilePage() {
         body: JSON.stringify({ name, phone, avatar: user?.avatar }),
       });
       if (!res.ok) throw new Error((await res.json()).message);
+      updateUser({ name, phone });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
