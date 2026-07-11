@@ -1,68 +1,76 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { SlidersHorizontal, ArrowDownUp } from "lucide-react";
+import { SlidersHorizontal, ArrowDownUp, Loader2 } from "lucide-react";
 
 import { PageHeader } from "@/components/store/PageHeader";
 import { ProductCard } from "@/components/store/ProductCard";
-import { BRANDS, CATEGORY_LIST, PRODUCTS } from "@/lib/store-data";
+
+const BASE = process.env.NEXT_PUBLIC_API_URL;
 
 const SORTS = [
-  { id: "featured", label: "Featured" },
-  { id: "newest", label: "Newest" },
-  { id: "price-asc", label: "Price: Low to High" },
+  { id: "newest",     label: "Newest" },
+  { id: "price-asc",  label: "Price: Low to High" },
   { id: "price-desc", label: "Price: High to Low" },
-  { id: "best-selling", label: "Best Selling" },
-  { id: "rating", label: "Highest Rated" },
+  { id: "rating",     label: "Highest Rated" },
 ];
 
 export default function ProductsPage() {
   const searchParams = useSearchParams();
 
-  const [cat, setCat] = useState(searchParams.get("category") || null);
-  const [brand, setBrand] = useState(null);
-  const [maxPrice, setMaxPrice] = useState(800);
-  const [minRating, setMinRating] = useState(0);
-  const [inStockOnly, setInStockOnly] = useState(false);
-  const [sort, setSort] = useState("featured");
+  const [products,    setProducts]    = useState([]);
+  const [categories,  setCategories]  = useState([]);
+  const [total,       setTotal]       = useState(0);
+  const [page,        setPage]        = useState(1);
+  const [pages,       setPages]       = useState(1);
+  const [loading,     setLoading]     = useState(true);
+
+  const [cat,         setCat]         = useState(searchParams.get("category") || "");
+  const [maxPrice,    setMaxPrice]    = useState(800);
+  const [minRating,   setMinRating]   = useState(0);
+  const [sort,        setSort]        = useState("newest");
   const [showFilters, setShowFilters] = useState(false);
 
-  const filtered = useMemo(() => {
-    let list = [...PRODUCTS];
+  // fetch categories once
+  useEffect(() => {
+    fetch(`${BASE}/categories`)
+      .then((r) => r.json())
+      .then((d) => setCategories(d.categories ?? []))
+      .catch(() => {});
+  }, []);
 
-    if (cat) list = list.filter((p) => p.categorySlug === cat);
-    if (brand)
-      list = list.filter(
-        (p) => p.brand.toLowerCase().replace(/\s+/g, "-") === brand,
-      );
-    list = list.filter((p) => p.price <= maxPrice);
-    if (minRating > 0) list = list.filter((p) => p.rating >= minRating);
-    if (inStockOnly) list = list.filter((p) => !p.stock || p.stock > 0);
+  useEffect(() => {
+    setPage(1);
+  }, [cat, sort]);
 
-    if (sort === "featured")
-      list = list
-        .filter((p) => p.featured)
-        .concat(list.filter((p) => !p.featured));
-    else if (sort === "newest")
-      list = list.filter((p) => p.isNew).concat(list.filter((p) => !p.isNew));
-    else if (sort === "price-asc") list.sort((a, b) => a.price - b.price);
-    else if (sort === "price-desc") list.sort((a, b) => b.price - a.price);
-    else if (sort === "best-selling")
-      list.sort((a, b) => b.reviews - a.reviews);
-    else if (sort === "rating") list.sort((a, b) => b.rating - a.rating);
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      const params = new URLSearchParams({ sort, page, limit: 20 });
+      if (cat) params.set("category", cat);
+      try {
+        const res  = await fetch(`${BASE}/products?${params}`);
+        const data = await res.json();
+        if (!cancelled) {
+          setProducts(data.products ?? []);
+          setTotal(data.total ?? 0);
+          setPages(data.pages ?? 1);
+        }
+      } catch {}
+      if (!cancelled) setLoading(false);
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [cat, sort, page]);
 
-    return list;
-  }, [cat, brand, maxPrice, minRating, inStockOnly, sort]);
+  const clearFilters = () => { setCat(""); setMaxPrice(800); setMinRating(0); };
 
-  const clearFilters = () => {
-    setCat(null);
-    setBrand(null);
-    setMaxPrice(800);
-    setMinRating(0);
-    setInStockOnly(false);
-  };
+  const filtered = products.filter(
+    (p) => p.price <= maxPrice && (!minRating || p.rating >= minRating)
+  );
 
   return (
     <div>
@@ -70,7 +78,7 @@ export default function ProductsPage() {
         crumbs={[{ label: "Home", href: "/" }, { label: "All Products" }]}
         eyebrow="Catalog"
         title="All Products"
-        subtitle={`${filtered.length} of ${PRODUCTS.length} items from trusted sellers`}
+        subtitle={`${total} items from trusted sellers`}
       />
 
       <div className="mx-auto max-w-7xl px-4 py-10">
@@ -81,9 +89,7 @@ export default function ProductsPage() {
           >
             <SlidersHorizontal className="h-4 w-4" /> Filters
           </button>
-          <p className="text-sm text-muted-foreground">
-            {filtered.length} results
-          </p>
+          <p className="text-sm text-muted-foreground">{filtered.length} results</p>
           <div className="ml-auto flex items-center gap-2">
             <ArrowDownUp className="h-4 w-4 text-muted-foreground" />
             <select
@@ -91,11 +97,7 @@ export default function ProductsPage() {
               onChange={(e) => setSort(e.target.value)}
               className="rounded-full border border-border bg-card px-3 py-2 text-sm"
             >
-              {SORTS.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
+              {SORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
           </div>
         </div>
@@ -105,59 +107,19 @@ export default function ProductsPage() {
             <div className="sticky top-32 space-y-6 rounded-2xl border border-border bg-card p-5">
               <FilterGroup title="Category">
                 <label className="flex cursor-pointer items-center gap-2 text-sm">
-                  <input
-                    type="radio"
-                    checked={cat === null}
-                    onChange={() => setCat(null)}
-                  />{" "}
-                  All
+                  <input type="radio" checked={cat === ""} onChange={() => setCat("")} /> All
                 </label>
-                {CATEGORY_LIST.map((c) => (
-                  <label
-                    key={c.slug}
-                    className="flex cursor-pointer items-center gap-2 text-sm"
-                  >
-                    <input
-                      type="radio"
-                      checked={cat === c.slug}
-                      onChange={() => setCat(c.slug)}
-                    />{" "}
+                {categories.map((c) => (
+                  <label key={c.slug} className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input type="radio" checked={cat === c.slug} onChange={() => setCat(c.slug)} />
                     {c.name}
-                  </label>
-                ))}
-              </FilterGroup>
-
-              <FilterGroup title="Brand">
-                <label className="flex cursor-pointer items-center gap-2 text-sm">
-                  <input
-                    type="radio"
-                    checked={brand === null}
-                    onChange={() => setBrand(null)}
-                  />{" "}
-                  All
-                </label>
-                {BRANDS.slice(0, 6).map((b) => (
-                  <label
-                    key={b.slug}
-                    className="flex cursor-pointer items-center gap-2 text-sm"
-                  >
-                    <input
-                      type="radio"
-                      checked={brand === b.slug}
-                      onChange={() => setBrand(b.slug)}
-                    />{" "}
-                    {b.name}
                   </label>
                 ))}
               </FilterGroup>
 
               <FilterGroup title={`Max price: $${maxPrice}`}>
                 <input
-                  type="range"
-                  min={10}
-                  max={800}
-                  step={10}
-                  value={maxPrice}
+                  type="range" min={10} max={800} step={10} value={maxPrice}
                   onChange={(e) => setMaxPrice(Number(e.target.value))}
                   className="w-full accent-primary"
                 />
@@ -181,18 +143,6 @@ export default function ProductsPage() {
                 </div>
               </FilterGroup>
 
-              <FilterGroup title="Availability">
-                <label className="flex cursor-pointer items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={inStockOnly}
-                    onChange={(e) => setInStockOnly(e.target.checked)}
-                    className="accent-primary"
-                  />{" "}
-                  In stock only
-                </label>
-              </FilterGroup>
-
               <button
                 onClick={clearFilters}
                 className="w-full rounded-full border border-border py-2 text-xs font-semibold text-muted-foreground hover:bg-secondary"
@@ -203,14 +153,14 @@ export default function ProductsPage() {
           </aside>
 
           <div>
-            {filtered.length === 0 ? (
+            {loading ? (
+              <div className="flex min-h-[40vh] items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="rounded-3xl border border-border bg-card p-12 text-center">
-                <p className="font-display text-xl font-bold">
-                  No products match your filters.
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Try widening your price range or clearing filters.
-                </p>
+                <p className="font-display text-xl font-bold">No products found.</p>
+                <p className="mt-2 text-sm text-muted-foreground">Try clearing your filters.</p>
                 <button
                   onClick={clearFilters}
                   className="mt-4 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
@@ -220,20 +170,30 @@ export default function ProductsPage() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
-                {filtered.map((p) => (
-                  <ProductCard key={p.id} p={p} />
-                ))}
+                {filtered.map((p) => <ProductCard key={p.id} p={p} />)}
               </div>
             )}
 
-            <div className="mt-10 flex justify-center">
-              <Link
-                href="/categories"
-                className="rounded-full border border-border px-6 py-2.5 text-sm font-semibold transition hover:bg-secondary"
-              >
-                Explore all categories →
-              </Link>
-            </div>
+            {/* Pagination */}
+            {pages > 1 && (
+              <div className="mt-10 flex items-center justify-center gap-2">
+                <button
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                  className="rounded-full border border-border px-4 py-2 text-sm font-semibold disabled:opacity-40 hover:bg-secondary"
+                >
+                  ← Prev
+                </button>
+                <span className="text-sm text-muted-foreground">Page {page} of {pages}</span>
+                <button
+                  disabled={page >= pages}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="rounded-full border border-border px-4 py-2 text-sm font-semibold disabled:opacity-40 hover:bg-secondary"
+                >
+                  Next →
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -244,11 +204,8 @@ export default function ProductsPage() {
 function FilterGroup({ title, children }) {
   return (
     <div>
-      <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-        {title}
-      </p>
+      <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">{title}</p>
       <div className="space-y-2">{children}</div>
     </div>
   );
 }
-
