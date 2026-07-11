@@ -11,6 +11,16 @@ async function getProducts(req, res, next) {
   }
 }
 
+async function getProductsByIds(req, res, next) {
+  try {
+    const ids = String(req.query.ids || "").split(",").map(Number).filter(Boolean);
+    const rows = await products.findByIds(ids);
+    res.json({ products: rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getProductBySlug(req, res, next) {
   try {
     const product = await products.findBySlug(req.params.slug);
@@ -49,4 +59,4 @@ async function deleteProduct(req, res, next) {
   }
 }
 
-module.exports = { getProducts, getProductBySlug, createProduct, updateProduct, deleteProduct };
+module.exports = { getProducts, getProductBySlug, getProductsByIds, createProduct, updateProduct, deleteProduct };

@@ -64,8 +64,18 @@ async function update(id, data) {
   return rows[0] || null;
 }
 
+async function findByIds(ids) {
+  if (!ids?.length) return [];
+  const placeholders = ids.map((_, i) => `$${i + 1}`).join(",");
+  const { rows } = await pool.query(
+    `${WITH_CATEGORY} WHERE p.id IN (${placeholders}) AND p.is_active = TRUE`,
+    ids
+  );
+  return rows;
+}
+
 async function softDelete(id) {
   await pool.query("UPDATE products SET is_active=FALSE, updated_at=NOW() WHERE id=$1", [id]);
 }
 
-module.exports = { findAll, findBySlug, create, update, softDelete };
+module.exports = { findAll, findBySlug, findByIds, create, update, softDelete };
