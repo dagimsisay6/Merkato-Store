@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, AlertTriangle, X } from "lucide-react";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
@@ -31,14 +31,20 @@ export default function AdminProducts() {
     load();
   }, [page, search]);
 
+  const [confirmId, setConfirmId] = useState(null);
+
   async function handleDelete(id) {
-    if (!confirm("Delete this product?")) return;
-    await fetch(`${BASE}/products/${id}`, {
+    setConfirmId(id);
+  }
+
+  async function confirmDelete() {
+    await fetch(`${BASE}/products/${confirmId}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    setProducts((prev) => prev.filter((p) => p.id !== confirmId));
     setTotal((t) => t - 1);
+    setConfirmId(null);
   }
 
   return (
@@ -150,6 +156,40 @@ export default function AdminProducts() {
             </div>
           </div>
         )}
+      </div>
+      {confirmId && (
+        <ConfirmDialog
+          title="Delete product?"
+          message="This will permanently remove the product from the store."
+          confirmLabel="Delete"
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmId(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ConfirmDialog({ title, message, confirmLabel, onConfirm, onCancel }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+      <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-(--shadow-elegant)">
+        <div className="flex items-start gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ember/10 text-ember">
+            <AlertTriangle className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="font-display font-bold text-foreground">{title}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{message}</p>
+          </div>
+          <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={onCancel} className="rounded-full border border-border px-4 py-2 text-sm font-semibold hover:bg-secondary">Cancel</button>
+          <button onClick={onConfirm} className="rounded-full bg-ember px-4 py-2 text-sm font-semibold text-white hover:bg-ember/90">{confirmLabel}</button>
+        </div>
       </div>
     </div>
   );

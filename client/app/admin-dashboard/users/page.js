@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, ShieldCheck, ShieldOff } from "lucide-react";
+import { Search, ShieldCheck, ShieldOff, AlertTriangle, X } from "lucide-react";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
@@ -50,15 +50,21 @@ export default function AdminUsers() {
     } catch {}
   }
 
+  const [confirmDisable, setConfirmDisable] = useState(null); // user id
+
   async function disableUser(id) {
-    if (!confirm("Disable this user?")) return;
+    setConfirmDisable(id);
+  }
+
+  async function confirmDisableUser() {
     try {
-      await fetch(`${BASE}/users/${id}`, {
+      await fetch(`${BASE}/users/${confirmDisable}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role: "disabled" } : u)));
+      setUsers((prev) => prev.map((u) => (u.id === confirmDisable ? { ...u, role: "disabled" } : u)));
     } catch {}
+    setConfirmDisable(null);
   }
 
   return (
@@ -169,6 +175,40 @@ export default function AdminUsers() {
             </div>
           </div>
         )}
+      </div>
+      {confirmDisable && (
+        <ConfirmDialog
+          title="Disable this user?"
+          message="The user will lose access to their account immediately."
+          confirmLabel="Disable"
+          onConfirm={confirmDisableUser}
+          onCancel={() => setConfirmDisable(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ConfirmDialog({ title, message, confirmLabel, onConfirm, onCancel }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+      <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-(--shadow-elegant)">
+        <div className="flex items-start gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ember/10 text-ember">
+            <AlertTriangle className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="font-display font-bold text-foreground">{title}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{message}</p>
+          </div>
+          <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={onCancel} className="rounded-full border border-border px-4 py-2 text-sm font-semibold hover:bg-secondary">Cancel</button>
+          <button onClick={onConfirm} className="rounded-full bg-ember px-4 py-2 text-sm font-semibold text-white hover:bg-ember/90">{confirmLabel}</button>
+        </div>
       </div>
     </div>
   );
