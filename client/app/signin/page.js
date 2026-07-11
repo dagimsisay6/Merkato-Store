@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/store-context";
 
 export default function LoginPage() {
@@ -15,19 +15,23 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const clearField = (key) => setFieldErrors((p) => ({ ...p, [key]: "" }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
+    const errs = {};
+    if (!email.trim()) errs.email = "Email is required.";
+    if (!password) errs.password = "Password is required.";
+    if (Object.keys(errs).length) { setFieldErrors(errs); return; }
+    setFieldErrors({});
+    setLoading(true);
     try {
       const user = await signin(email, password);
       const redirect = searchParams.get("redirect");
-      if (user.role === "admin") {
-        router.push(redirect || "/admin-dashboard");
-      } else {
-        router.push(redirect || "/account");
-      }
+      router.push(redirect || (user.role === "admin" ? "/admin-dashboard" : "/account"));
     } catch (err) {
       setError(err.message);
     }
@@ -70,10 +74,11 @@ export default function LoginPage() {
           <p className="text-muted-foreground text-sm font-medium">Sign in to your Merkato account.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} noValidate className="space-y-5">
           {error && (
             <p className="rounded-xl bg-ember/10 px-4 py-3 text-sm font-medium text-ember">{error}</p>
           )}
+
           <div>
             <label className="block text-[10px] font-bold text-muted-foreground tracking-widest mb-2 uppercase">Email</label>
             <div className="relative">
@@ -81,12 +86,12 @@ export default function LoginPage() {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 border border-border rounded-full focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm bg-card text-foreground placeholder:text-muted-foreground"
+                onChange={(e) => { setEmail(e.target.value); clearField("email"); }}
+                className={`w-full pl-11 pr-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm bg-card text-foreground placeholder:text-muted-foreground ${fieldErrors.email ? "border-red-400" : "border-border"}`}
                 placeholder="you@email.com"
-                required
               />
             </div>
+            {fieldErrors.email && <FieldError message={fieldErrors.email} />}
           </div>
 
           <div>
@@ -99,15 +104,15 @@ export default function LoginPage() {
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-11 pr-11 py-3 border border-border rounded-full focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm bg-card text-foreground placeholder:text-muted-foreground"
+                onChange={(e) => { setPassword(e.target.value); clearField("password"); }}
+                className={`w-full pl-11 pr-11 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm bg-card text-foreground placeholder:text-muted-foreground ${fieldErrors.password ? "border-red-400" : "border-border"}`}
                 placeholder="Your password"
-                required
               />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
+            {fieldErrors.password && <FieldError message={fieldErrors.password} />}
           </div>
 
           <button
@@ -140,6 +145,15 @@ export default function LoginPage() {
   );
 }
 
+function FieldError({ message }) {
+  return (
+    <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-500">
+      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+      {message}
+    </p>
+  );
+}
+
 function GoogleIcon() {
   return (
     <svg className="h-4 w-4" viewBox="0 0 24 24">
@@ -150,4 +164,3 @@ function GoogleIcon() {
     </svg>
   );
 }
-
