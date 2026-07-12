@@ -262,30 +262,34 @@ export function SiteHeader() {
                 <Globe className="h-4 w-4" /> EN{" "}
                 <ChevronDown className="h-3.5 w-3.5" />
               </button>
-              <Link
-                href="/account/wishlist"
-                aria-label="Wishlist"
-                className="relative hidden h-10 w-10 place-items-center rounded-full transition hover:bg-secondary md:grid"
-              >
-                <Heart className="h-5 w-5" />
-                {wishlist.ids.length > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 grid h-5 w-5 place-items-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground">
-                    {wishlist.ids.length}
-                  </span>
-                )}
-              </Link>
-              <Link
-                href="/cart"
-                aria-label="Cart"
-                className="relative grid h-10 w-10 place-items-center rounded-full transition hover:bg-secondary"
-              >
-                <ShoppingBag className="h-5 w-5" />
-                {cart.count > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 grid h-5 w-5 place-items-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground">
-                    {cart.count}
-                  </span>
-                )}
-              </Link>
+              {authMounted && !isAdmin && (
+                <Link
+                  href="/account/wishlist"
+                  aria-label="Wishlist"
+                  className="relative hidden h-10 w-10 place-items-center rounded-full transition hover:bg-secondary md:grid"
+                >
+                  <Heart className="h-5 w-5" />
+                  {wishlist.ids.length > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 grid h-5 w-5 place-items-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground">
+                      {wishlist.ids.length}
+                    </span>
+                  )}
+                </Link>
+              )}
+              {authMounted && !isAdmin && (
+                <Link
+                  href="/cart"
+                  aria-label="Cart"
+                  className="relative grid h-10 w-10 place-items-center rounded-full transition hover:bg-secondary"
+                >
+                  <ShoppingBag className="h-5 w-5" />
+                  {cart.count > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 grid h-5 w-5 place-items-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground">
+                      {cart.count}
+                    </span>
+                  )}
+                </Link>
+              )}
               <NotificationBell />
               {/* User menu */}
               <div className="relative hidden md:block" ref={userMenuRef}>
@@ -500,6 +504,7 @@ export function SiteHeader() {
                   <>
                     <Link href="/account/orders" className="block rounded-lg px-3 py-2 hover:bg-secondary">My Orders</Link>
                     <Link href="/account/wishlist" className="block rounded-lg px-3 py-2 hover:bg-secondary">Wishlist</Link>
+                    <Link href="/cart" className="block rounded-lg px-3 py-2 hover:bg-secondary">Cart</Link>
                   </>
                 )}
                 <Link
@@ -521,14 +526,19 @@ export function SiteHeader() {
       </header>
 
       {/* Mobile bottom tab bar */}
+      {authMounted && (
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-border bg-card pb-safe md:hidden">
-        {[
-          { href: "/", icon: Home, label: "Home" },
-          { href: "/categories", icon: LayoutGrid, label: "Categories" },
-          { href: "/account/wishlist", icon: Heart, label: "Wishlist", badge: wishlist.ids.length },
-          { href: "/cart", icon: ShoppingBag, label: "Cart", badge: cart.count },
-          { href: mounted && isLoggedIn ? (isAdmin ? "/admin-dashboard" : "/account") : "/signin", icon: User, label: "Account" },
-        ].map(({ href, icon: Icon, label, badge }) => (
+        {(isAdmin ? [
+          { href: "/",                 icon: Home,        label: "Home" },
+          { href: "/categories",       icon: LayoutGrid,  label: "Categories" },
+          { href: "/admin-dashboard",  icon: User,        label: "Dashboard" },
+        ] : [
+          { href: "/",                    icon: Home,        label: "Home" },
+          { href: "/categories",          icon: LayoutGrid,  label: "Categories" },
+          { href: "/account/wishlist",    icon: Heart,       label: "Wishlist", badge: wishlist.ids.length },
+          { href: "/cart",               icon: ShoppingBag, label: "Cart",     badge: cart.count },
+          { href: isLoggedIn ? "/account" : "/signin", icon: User, label: "Account" },
+        ]).map(({ href, icon: Icon, label, badge }) => (
           <Link
             key={label}
             href={href}
@@ -548,6 +558,7 @@ export function SiteHeader() {
           </Link>
         ))}
       </nav>
+      )}
     </>
   );
 }

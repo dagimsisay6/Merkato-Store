@@ -36,7 +36,7 @@ export function StoreProvider({ children }) {
   // ── Load cart + wishlist after mount when token is ready ──
   useEffect(() => {
     if (!mounted) return;
-    if (!token) {
+    if (!token || user?.role === "admin") {
       setCartItems([]);
       setCartProducts({});
       setWishIds([]);
@@ -141,6 +141,7 @@ export function StoreProvider({ children }) {
   const auth = {
     user, token, mounted,
     isAdmin: user?.role === "admin",
+    isCustomer: user?.role === "customer",
     isLoggedIn: !!user,
     updateUser: (updated) => {
       const merged = { ...user, ...updated };
