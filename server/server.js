@@ -15,6 +15,7 @@ const brandRoutes = require("./src/routes/brands");
 const countryRoutes = require("./src/routes/countries");
 const reviewRoutes = require("./src/routes/reviews");
 const messageRoutes = require("./src/routes/messages");
+const applicationRoutes = require("./src/routes/applications");
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -39,6 +40,7 @@ app.use("/api/brands", brandRoutes);
 app.use("/api/countries", countryRoutes);
 app.use("/api", reviewRoutes);
 app.use("/api", messageRoutes);
+app.use("/api", applicationRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));

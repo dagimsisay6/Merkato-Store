@@ -106,7 +106,34 @@ CREATE TABLE IF NOT EXISTS message_replies (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS orders (
+CREATE TABLE IF NOT EXISTS job_applications (
+  id           SERIAL PRIMARY KEY,
+  position     TEXT NOT NULL,
+  first_name   TEXT NOT NULL,
+  last_name    TEXT NOT NULL,
+  email        TEXT NOT NULL,
+  phone        TEXT,
+  location     TEXT NOT NULL,
+  linkedin     TEXT,
+  portfolio    TEXT,
+  experience   TEXT NOT NULL,
+  cover_letter TEXT NOT NULL,
+  resume_url   TEXT,
+  status       TEXT NOT NULL DEFAULT 'new'
+               CHECK (status IN ('new','reviewing','shortlisted','rejected','hired','archived')),
+  is_deleted   BOOLEAN DEFAULT FALSE,
+  created_at   TIMESTAMPTZ DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS application_replies (
+  id             SERIAL PRIMARY KEY,
+  application_id INT NOT NULL REFERENCES job_applications(id) ON DELETE CASCADE,
+  admin_id       INT REFERENCES users(id) ON DELETE SET NULL,
+  reply          TEXT NOT NULL,
+  created_at     TIMESTAMPTZ DEFAULT NOW()
+);
+
   id               SERIAL PRIMARY KEY,
   user_id          INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   items            JSONB NOT NULL DEFAULT '[]',

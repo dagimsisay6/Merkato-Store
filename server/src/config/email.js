@@ -194,4 +194,75 @@ async function sendPasswordChanged({ name, email }) {
   });
 }
 
-module.exports = { sendAcknowledgment, sendReply, sendPasswordReset, sendProfileUpdated, sendPasswordChanged };
+async function sendApplicationAck({ firstName, email, position }) {
+  const transporter = getTransporter();
+  if (!transporter) return;
+  await transporter.sendMail({
+    from: FROM(),
+    to: email,
+    subject: `We received your application — ${position}`,
+    html: `
+      <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
+        <div style="background:linear-gradient(135deg,#2d7a5a,#4ade80);padding:32px 40px">
+          <h1 style="color:#fff;margin:0;font-size:24px;font-weight:800">Merkato Store</h1>
+          <p style="color:rgba(255,255,255,0.85);margin:4px 0 0;font-size:13px">Careers Team</p>
+        </div>
+        <div style="padding:40px">
+          <h2 style="color:#111827;font-size:20px;margin:0 0 12px">Hi ${firstName},</h2>
+          <p style="color:#374151;line-height:1.7;margin:0 0 16px">
+            Thank you for applying for the <strong>${position}</strong> position at Merkato Store.
+            We have received your application and our team will carefully review it.
+          </p>
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;margin:24px 0">
+            <p style="margin:0;font-size:14px;color:#166534;font-weight:600">What happens next?</p>
+            <ul style="margin:8px 0 0;padding-left:20px;color:#374151;font-size:13px;line-height:1.8">
+              <li>Our team reviews all applications within <strong>5–7 business days</strong></li>
+              <li>Shortlisted candidates will be contacted for an interview</li>
+              <li>You will receive an update either way</li>
+            </ul>
+          </div>
+          <p style="color:#374151;line-height:1.7;margin:0 0 8px">In the meantime, feel free to explore more about us at <a href="${process.env.CLIENT_URL}/careers" style="color:#2d7a5a">merkato.store/careers</a>.</p>
+          <p style="color:#6b7280;font-size:13px;margin:24px 0 0">— Merkato Store Careers Team</p>
+        </div>
+        <div style="background:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb">
+          <p style="margin:0;font-size:12px;color:#9ca3af">© ${new Date().getFullYear()} Merkato Store. All rights reserved.</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
+async function sendApplicationReply({ firstName, email, position, replyText, adminName, status }) {
+  const transporter = getTransporter();
+  if (!transporter) return;
+  const statusLabels = { reviewing: 'Under Review', shortlisted: 'Shortlisted 🎉', rejected: 'Application Update', hired: 'Offer Extended 🎉', archived: 'Application Closed' };
+  const subjectPrefix = statusLabels[status] || 'Update on Your Application';
+  await transporter.sendMail({
+    from: FROM(),
+    to: email,
+    subject: `${subjectPrefix} — ${position} at Merkato Store`,
+    html: `
+      <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
+        <div style="background:linear-gradient(135deg,#2d7a5a,#4ade80);padding:32px 40px">
+          <h1 style="color:#fff;margin:0;font-size:24px;font-weight:800">Merkato Store</h1>
+          <p style="color:rgba(255,255,255,0.85);margin:4px 0 0;font-size:13px">Careers Team</p>
+        </div>
+        <div style="padding:40px">
+          <h2 style="color:#111827;font-size:20px;margin:0 0 4px">Hi ${firstName},</h2>
+          <p style="color:#6b7280;font-size:13px;margin:0 0 20px">Re: ${position}</p>
+          <p style="color:#374151;line-height:1.7;margin:0 0 24px">${adminName} from the Merkato Store Careers team has sent you an update:</p>
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px 24px;margin:0 0 24px">
+            <p style="margin:0;color:#166534;line-height:1.7;white-space:pre-wrap">${replyText}</p>
+          </div>
+          <p style="color:#374151;font-size:13px;line-height:1.7">If you have any questions, reply to this email or visit our <a href="${process.env.CLIENT_URL}/contact" style="color:#2d7a5a">contact page</a>.</p>
+          <p style="color:#6b7280;font-size:13px;margin:24px 0 0">— ${adminName}, Merkato Store Careers</p>
+        </div>
+        <div style="background:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb">
+          <p style="margin:0;font-size:12px;color:#9ca3af">© ${new Date().getFullYear()} Merkato Store. All rights reserved.</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
+module.exports = { sendAcknowledgment, sendReply, sendPasswordReset, sendProfileUpdated, sendPasswordChanged, sendApplicationAck, sendApplicationReply };
