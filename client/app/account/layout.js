@@ -14,6 +14,7 @@ import {
   Home as HomeIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/store-context";
+import Avatar from "@/components/ui/Avatar";
 
 const NAV = [
   { to: "/account", icon: HomeIcon, label: "Dashboard", exact: true },
@@ -49,9 +50,12 @@ export default function AccountLayout({ children }) {
       <section className="border-b border-border bg-linear-to-br from-primary/5 via-background to-gold/10">
         <div className="mx-auto max-w-7xl px-4 py-10">
           <div className="flex items-center gap-4">
-            <div className="grid h-16 w-16 place-items-center rounded-2xl gradient-primary text-2xl font-extrabold text-primary-foreground">
-              {user?.name?.[0]?.toUpperCase() ?? "U"}
-            </div>
+            <Avatar
+              src={user?.avatar}
+              name={user?.name}
+              className="h-16 w-16 rounded-2xl"
+              textClassName="text-2xl"
+            />
             <div>
               <h1 className="font-display text-2xl font-extrabold sm:text-3xl">
                 Hi, {user?.name ?? "there"}

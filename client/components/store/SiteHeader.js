@@ -25,6 +25,7 @@ import {
 } from "@/lib/store-data";
 import { useCart, useWishlist, useAuth } from "@/lib/store-context";
 import { NotificationBell } from "@/components/store/NotificationBell";
+import Avatar from "@/components/ui/Avatar";
 
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
@@ -292,10 +293,10 @@ export function SiteHeader() {
                   onClick={() => setUserMenuOpen((v) => !v)}
                   title={authMounted && isLoggedIn && user?.name ? user.name : undefined}
                   aria-label="Account"
-                  className="grid h-10 w-10 place-items-center rounded-full bg-secondary transition hover:bg-muted"
+                  className="grid h-10 w-10 place-items-center rounded-full bg-secondary transition hover:bg-muted overflow-hidden"
                 >
-                  {authMounted && isLoggedIn && user?.name ? (
-                    <span className="text-sm font-bold text-primary">{user.name[0].toUpperCase()}</span>
+                  {authMounted && isLoggedIn ? (
+                    <Avatar src={user?.avatar} name={user?.name} className="h-10 w-10 rounded-full" textClassName="text-sm" />
                   ) : (
                     <User className="h-5 w-5" />
                   )}
@@ -305,10 +306,15 @@ export function SiteHeader() {
                     {authMounted && isLoggedIn ? (
                       <>
                         <div className="border-b border-border px-4 py-3">
-                          <p className="text-sm font-bold text-foreground truncate">{user?.name}</p>
-                          <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                          <div className="flex items-center gap-3">
+                            <Avatar src={user?.avatar} name={user?.name} className="h-9 w-9 rounded-full shrink-0" textClassName="text-sm" />
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold text-foreground truncate">{user?.name}</p>
+                              <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                            </div>
+                          </div>
                           {isAdmin && (
-                            <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">Admin</span>
+                            <span className="mt-2 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">Admin</span>
                           )}
                         </div>
                         <Link
