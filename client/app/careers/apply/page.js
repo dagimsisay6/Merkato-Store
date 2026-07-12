@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -26,6 +26,14 @@ const POSITIONS = [
 ];
 
 export default function ApplyPage() {
+  return (
+    <Suspense>
+      <ApplyForm />
+    </Suspense>
+  );
+}
+
+function ApplyForm() {
   const searchParams = useSearchParams();
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
