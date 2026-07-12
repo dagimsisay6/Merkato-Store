@@ -22,8 +22,13 @@ const PORT = process.env.PORT || 8000;
 
 // Middleware
 app.use(helmet());
+const allowedOrigins = process.env.CLIENT_URL?.split(",").map(u => u.trim()) || [];
 app.use(cors({
-  origin: process.env.CLIENT_URL?.split(",").map(u => u.trim()),
+  origin: (origin, cb) => {
+    // allow server-to-server (no origin) and listed origins
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    cb(new Error(`CORS: origin ${origin} not allowed`));
+  },
   credentials: true,
 }));
 if (process.env.NODE_ENV !== "production") app.use(morgan("dev"));
