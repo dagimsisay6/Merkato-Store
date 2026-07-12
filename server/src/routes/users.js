@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const {
-  getProfile, updateProfile, changePassword,
+  getProfile, updateProfile, changePassword, uploadAvatar, removeAvatar,
   getAddresses, addAddress, updateAddress, deleteAddress,
   getWishlist, addToWishlist, removeFromWishlist,
   getCart, updateCart, deleteAccount,
@@ -14,6 +14,8 @@ router.use(protect);
 // Profile
 router.get("/profile", getProfile);
 router.put("/profile", updateProfile);
+router.put("/avatar", uploadAvatar);
+router.delete("/avatar", removeAvatar);
 router.put("/password", changePassword);
 
 // Addresses

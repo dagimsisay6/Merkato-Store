@@ -1,17 +1,92 @@
 const users = require("../queries/users");
 const bcrypt = require("bcryptjs");
 const pool = require("../config/db");
+const cloudinary = require("cloudinary").v2;
+const { sendProfileUpdated, sendPasswordChanged } = require("../config/email");
 
 // ── Profile ──────────────────────────────────────────────
 async function getProfile(req, res) {
   res.json({ user: req.user });
 }
 
+async function uploadAvatar(req, res, next) {
+  try {
+    const { data } = req.body;
+    if (!data) return res.status(400).json({ message: "No image data provided." });
+    const result = await cloudinary.uploader.upload(data, {
+      folder: "merkato/avatars",
+      transformation: [{ width: 256, height: 256, crop: "fill", gravity: "face" }],
+      resource_type: "image",
+    });
+    const user = await users.update(req.user.id, {
+      name: req.user.name,
+      phone: req.user.phone,
+      avatar: result.secure_url,
+    });
+    res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function removeAvatar(req, res, next) {
+  try {
+    const current = req.user.avatar;
+    // Delete from Cloudinary if it's a Cloudinary URL
+    if (current && current.includes("cloudinary.com")) {
+      const publicId = current.split("/").slice(-2).join("/").replace(/\.[^.]+$/, "");
+      await cloudinary.uploader.destroy(publicId).catch(() => {});
+    }
+    const user = await users.update(req.user.id, {
+      name: req.user.name,
+      phone: req.user.phone,
+      avatar: null,
+    });
+    res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function updateProfile(req, res, next) {
   try {
-    const { name, phone, avatar } = req.body;
-    const user = await users.update(req.user.id, { name, phone, avatar });
-    res.json({ user });
+    const { name, phone, avatar, email } = req.body;
+    const current = req.user;
+    const changedFields = [];
+
+    if (!name || !name.trim()) return res.status(400).json({ message: "Full name is required." });
+
+    // Handle email change
+    if (email && email.toLowerCase() !== current.email) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ message: "Please enter a valid email address." });
+      }
+      const taken = await users.findByEmailExcluding(email, current.id);
+      if (taken) return res.status(400).json({ message: "That email address is already in use." });
+      await users.updateEmail(current.id, email);
+      changedFields.push("Email address");
+    }
+
+    if (name.trim() !== current.name) changedFields.push("Full name");
+    if ((phone || "") !== (current.phone || "")) changedFields.push("Phone number");
+    if (avatar && avatar !== current.avatar) changedFields.push("Profile picture");
+
+    const user = await users.update(current.id, {
+      name: name.trim(),
+      phone: phone || null,
+      avatar: avatar || current.avatar,
+    });
+
+    // Merge email if it was changed
+    const finalUser = email && email.toLowerCase() !== current.email
+      ? { ...user, email: email.toLowerCase() }
+      : user;
+
+    if (changedFields.length) {
+      sendProfileUpdated({ name: finalUser.name, email: finalUser.email, changedFields }).catch(() => {});
+    }
+
+    res.json({ user: finalUser });
   } catch (err) {
     next(err);
   }
@@ -20,11 +95,27 @@ async function updateProfile(req, res, next) {
 async function changePassword(req, res, next) {
   try {
     const { currentPassword, newPassword } = req.body;
+    if (!currentPassword) return res.status(400).json({ message: "Current password is required." });
+    if (!newPassword || newPassword.length < 8) return res.status(400).json({ message: "New password must be at least 8 characters." });
+    if (!/[A-Z]/.test(newPassword)) return res.status(400).json({ message: "Password must contain at least one uppercase letter." });
+    if (!/[a-z]/.test(newPassword)) return res.status(400).json({ message: "Password must contain at least one lowercase letter." });
+    if (!/\d/.test(newPassword)) return res.status(400).json({ message: "Password must contain at least one number." });
+    if (!/[^A-Za-z0-9]/.test(newPassword)) return res.status(400).json({ message: "Password must contain at least one special character." });
+
     const full = await users.findByEmail(req.user.email);
     const valid = await users.comparePassword(currentPassword, full.password);
-    if (!valid) return res.status(400).json({ message: "Current password is incorrect" });
+    if (!valid) return res.status(400).json({ message: "Current password is incorrect." });
+
+    const isSame = await bcrypt.compare(newPassword, full.password);
+    if (isSame) return res.status(400).json({ message: "New password cannot be the same as your current password." });
+
     await users.updatePassword(req.user.id, newPassword);
-    res.json({ message: "Password updated" });
+    // Clear any outstanding reset tokens
+    await users.setResetToken(req.user.id, null, null);
+
+    sendPasswordChanged({ name: req.user.name, email: req.user.email }).catch(() => {});
+
+    res.json({ message: "Password updated successfully." });
   } catch (err) {
     next(err);
   }
@@ -178,4 +269,5 @@ module.exports = {
   getWishlist, addToWishlist, removeFromWishlist,
   getCart, updateCart, deleteAccount,
   getAllUsers, getUserById, updateUserRole, disableUser,
+  uploadAvatar, removeAvatar,
 };

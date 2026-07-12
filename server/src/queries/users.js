@@ -46,6 +46,22 @@ async function update(id, { name, phone, avatar }) {
   return rows[0];
 }
 
+async function updateEmail(id, email) {
+  const { rows } = await pool.query(
+    `UPDATE users SET email=$1, updated_at=NOW() WHERE id=$2 RETURNING ${PUBLIC_FIELDS}`,
+    [email.toLowerCase(), id]
+  );
+  return rows[0];
+}
+
+async function findByEmailExcluding(email, excludeId) {
+  const { rows } = await pool.query(
+    "SELECT id FROM users WHERE email=$1 AND id!=$2",
+    [email.toLowerCase(), excludeId]
+  );
+  return rows[0] || null;
+}
+
 async function updateRole(id, role) {
   const { rows } = await pool.query(
     `UPDATE users SET role=$1, updated_at=NOW() WHERE id=$2 RETURNING ${PUBLIC_FIELDS}`,
@@ -117,4 +133,4 @@ async function clearResetToken(id, newPasswordHash) {
   );
 }
 
-module.exports = { findByEmail, findById, findAll, create, update, updateRole, updatePassword, disable, updateAddresses, updateWishlist, updateCart, comparePassword, setResetToken, findByResetToken, clearResetToken };
+module.exports = { findByEmail, findById, findAll, create, update, updateEmail, findByEmailExcluding, updateRole, updatePassword, disable, updateAddresses, updateWishlist, updateCart, comparePassword, setResetToken, findByResetToken, clearResetToken };

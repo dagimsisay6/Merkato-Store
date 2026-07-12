@@ -134,4 +134,64 @@ async function sendPasswordReset({ email, resetUrl, expiresMinutes = 15 }) {
   });
 }
 
-module.exports = { sendAcknowledgment, sendReply, sendPasswordReset };
+async function sendProfileUpdated({ name, email, changedFields }) {
+  const transporter = getTransporter();
+  if (!transporter) return;
+  const fieldList = changedFields.map(f => `<li style="color:#374151;font-size:14px;line-height:1.8">${f}</li>`).join("");
+  await transporter.sendMail({
+    from: FROM(),
+    to: email,
+    subject: "Your Merkato Store profile has been updated",
+    html: `
+      <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
+        <div style="background:linear-gradient(135deg,#2d7a5a,#4ade80);padding:32px 40px">
+          <h1 style="color:#fff;margin:0;font-size:24px;font-weight:800">Merkato Store</h1>
+          <p style="color:rgba(255,255,255,0.85);margin:4px 0 0;font-size:13px">Account Update Notification</p>
+        </div>
+        <div style="padding:40px">
+          <h2 style="color:#111827;font-size:20px;margin:0 0 12px">Hi ${name},</h2>
+          <p style="color:#374151;line-height:1.7;margin:0 0 16px">Your Merkato Store profile was just updated. The following information was changed:</p>
+          <ul style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px 16px 36px;margin:0 0 24px">${fieldList}</ul>
+          <p style="color:#374151;line-height:1.7;margin:0 0 8px">If you did not make this change, please <a href="${process.env.CLIENT_URL}/account/settings" style="color:#2d7a5a;font-weight:600">secure your account</a> immediately.</p>
+          <p style="color:#6b7280;font-size:13px;margin:24px 0 0">— Merkato Store Support Team</p>
+        </div>
+        <div style="background:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb">
+          <p style="margin:0;font-size:12px;color:#9ca3af">© ${new Date().getFullYear()} Merkato Store. All rights reserved.</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
+async function sendPasswordChanged({ name, email }) {
+  const transporter = getTransporter();
+  if (!transporter) return;
+  const time = new Date().toUTCString();
+  await transporter.sendMail({
+    from: FROM(),
+    to: email,
+    subject: "Your Merkato Store password has been changed",
+    html: `
+      <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
+        <div style="background:linear-gradient(135deg,#2d7a5a,#4ade80);padding:32px 40px">
+          <h1 style="color:#fff;margin:0;font-size:24px;font-weight:800">Merkato Store</h1>
+          <p style="color:rgba(255,255,255,0.85);margin:4px 0 0;font-size:13px">Security Notification</p>
+        </div>
+        <div style="padding:40px">
+          <h2 style="color:#111827;font-size:20px;margin:0 0 12px">Hi ${name},</h2>
+          <p style="color:#374151;line-height:1.7;margin:0 0 16px">Your Merkato Store account password was successfully changed.</p>
+          <div style="background:#f9fafb;border-left:4px solid #2d7a5a;border-radius:4px;padding:14px 18px;margin:0 0 24px">
+            <p style="margin:0;font-size:13px;color:#6b7280">⏰ Changed at: <strong style="color:#111827">${time}</strong></p>
+          </div>
+          <p style="color:#374151;line-height:1.7;margin:0 0 8px">If you did not make this change, please <a href="${process.env.CLIENT_URL}/forgot-password" style="color:#2d7a5a;font-weight:600">reset your password</a> immediately and contact support.</p>
+          <p style="color:#6b7280;font-size:13px;margin:24px 0 0">— Merkato Store Support Team</p>
+        </div>
+        <div style="background:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb">
+          <p style="margin:0;font-size:12px;color:#9ca3af">© ${new Date().getFullYear()} Merkato Store. All rights reserved.</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
+module.exports = { sendAcknowledgment, sendReply, sendPasswordReset, sendProfileUpdated, sendPasswordChanged };
