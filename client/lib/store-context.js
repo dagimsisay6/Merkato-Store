@@ -172,7 +172,7 @@ export function StoreProvider({ children }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Sign up failed");
-      return data.user;
+      return data.email;
     },
     signout: () => {
       localStorage.removeItem("merkato.token");
