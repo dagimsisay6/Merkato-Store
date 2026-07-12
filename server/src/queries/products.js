@@ -15,7 +15,18 @@ async function findAll({ category, search, sort, featured, isNew, deals, exclude
   if (isNew) conditions.push("p.is_new_arrival = TRUE");
   if (deals) conditions.push("p.original_price IS NOT NULL AND p.original_price > 0");
   if (exclude) { params.push(exclude); conditions.push(`p.id != $${params.length}`); }
-  if (search) { params.push(`%${search}%`); conditions.push(`(p.name ILIKE $${params.length} OR p.brand ILIKE $${params.length})`); }
+
+  // Fuzzy search: split into tokens, each token must match at least one field
+  if (search && search.trim()) {
+    const tokens = search.trim().split(/\s+/).filter(Boolean).slice(0, 8);
+    for (const token of tokens) {
+      params.push(`%${token}%`);
+      const n = params.length;
+      conditions.push(
+        `(p.name ILIKE $${n} OR p.brand ILIKE $${n} OR p.description ILIKE $${n} OR array_to_string(p.tags,'|') ILIKE $${n} OR array_to_string(p.features,'|') ILIKE $${n} OR c.name ILIKE $${n})`
+      );
+    }
+  }
 
   const sortMap = {
     "price-asc": "p.price ASC",

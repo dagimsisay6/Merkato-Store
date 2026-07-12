@@ -97,11 +97,19 @@ export function SiteHeader() {
   };
 
   const suggestions = q.trim()
-    ? PRODUCTS.filter((p) =>
-        (p.name + p.brand + p.tags.join(" "))
-          .toLowerCase()
-          .includes(q.toLowerCase()),
-      ).slice(0, 5)
+    ? (() => {
+        const tokens = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+        return PRODUCTS
+          .map((p) => {
+            const haystack = `${p.name} ${p.brand} ${p.tags.join(" ")} ${p.category ?? ""}`.toLowerCase();
+            const score = tokens.reduce((s, t) => s + (haystack.includes(t) ? 1 : 0), 0);
+            return { p, score };
+          })
+          .filter(({ score }) => score > 0)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 5)
+          .map(({ p }) => p);
+      })()
     : [];
 
   return (
