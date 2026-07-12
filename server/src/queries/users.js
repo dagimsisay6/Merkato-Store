@@ -38,6 +38,14 @@ async function create({ name, email, password }) {
   return rows[0];
 }
 
+async function createVerified({ name, email, passwordHash }) {
+  const { rows } = await pool.query(
+    "INSERT INTO users (name, email, password, role, is_verified) VALUES ($1, $2, $3, 'customer', TRUE) RETURNING id, name, email, role",
+    [name, email.toLowerCase(), passwordHash]
+  );
+  return rows[0];
+}
+
 async function update(id, { name, phone, avatar }) {
   const { rows } = await pool.query(
     `UPDATE users SET name=$1, phone=$2, avatar=$3, updated_at=NOW() WHERE id=$4 RETURNING ${PUBLIC_FIELDS}`,
@@ -158,4 +166,4 @@ async function markVerified(id) {
   );
 }
 
-module.exports = { findByEmail, findById, findAll, create, update, updateEmail, findByEmailExcluding, updateRole, updatePassword, disable, updateAddresses, updateWishlist, updateCart, comparePassword, setResetToken, findByResetToken, clearResetToken, setOtp, findByOtp, markVerified };
+module.exports = { findByEmail, findById, findAll, create, createVerified, update, updateEmail, findByEmailExcluding, updateRole, updatePassword, disable, updateAddresses, updateWishlist, updateCart, comparePassword, setResetToken, findByResetToken, clearResetToken, setOtp, findByOtp, markVerified };

@@ -18,30 +18,60 @@ function hashOtp(otp) {
   return crypto.createHash("sha256").update(otp).digest("hex");
 }
 
+const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const users = require("../queries/users");
+const { sendPasswordReset, sendOtpEmail } = require("../config/email");
+
+const RESET_EXPIRES_MS = 15 * 60 * 1000;
+const OTP_EXPIRES_MS   = 10 * 60 * 1000;
+
+// Pending signups — not inserted to DB until OTP verified
+// { email -> { name, passwordHash, otpHash, expiresAt } }
+const pendingSignups = new Map();
+
+const signToken = (id) =>
+  jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
+
+function generateOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function hashOtp(otp) {
+  return crypto.createHash("sha256").update(otp).digest("hex");
+}
+
 async function signup(req, res, next) {
   try {
     const { name, email, password } = req.body;
     if (!name?.trim() || !email?.trim() || !password)
       return res.status(400).json({ message: "Name, email and password are required." });
 
-    const existing = await users.findByEmail(email);
+    const normalizedEmail = email.toLowerCase().trim();
 
-    // If account exists but is unverified — resend a fresh OTP instead of erroring
-    if (existing && !existing.is_verified) {
-      const otp = generateOtp();
-      await users.setOtp(existing.id, hashOtp(otp), new Date(Date.now() + OTP_EXPIRES_MS));
-      sendOtpEmail({ name: existing.name, email: existing.email, otp }).catch(() => {});
-      return res.status(200).json({ message: "otp_sent", email: existing.email });
-    }
-
+    // Already a verified account
+    const existing = await users.findByEmail(normalizedEmail);
     if (existing) return res.status(400).json({ message: "Email already in use." });
 
-    const user = await users.create({ name, email, password });
-    const otp  = generateOtp();
-    await users.setOtp(user.id, hashOtp(otp), new Date(Date.now() + OTP_EXPIRES_MS));
-    sendOtpEmail({ name: user.name, email: user.email, otp }).catch(() => {});
+    const otp          = generateOtp();
+    const passwordHash = await bcrypt.hash(password, 10);
+    pendingSignups.set(normalizedEmail, {
+      name: name.trim(),
+      passwordHash,
+      otpHash:   hashOtp(otp),
+      expiresAt: Date.now() + OTP_EXPIRES_MS,
+    });
 
-    res.status(201).json({ message: "otp_sent", email: user.email });
+    try {
+      await sendOtpEmail({ name: name.trim(), email: normalizedEmail, otp });
+    } catch (emailErr) {
+      console.error("❌ OTP email failed:", emailErr.message);
+      pendingSignups.delete(normalizedEmail);
+      return res.status(500).json({ message: "Failed to send verification email. Please try again." });
+    }
+
+    res.status(201).json({ message: "otp_sent", email: normalizedEmail });
   } catch (err) {
     next(err);
   }
@@ -52,8 +82,25 @@ async function verifyOtp(req, res, next) {
     const { email, otp } = req.body;
     if (!email || !otp) return res.status(400).json({ message: "Email and OTP are required." });
 
+    const normalizedEmail = email.toLowerCase().trim();
+    const pending = pendingSignups.get(normalizedEmail);
+
+    // Check pending signup first
+    if (pending) {
+      if (Date.now() > pending.expiresAt)
+        return res.status(400).json({ message: "Code expired. Please sign up again." });
+      if (pending.otpHash !== hashOtp(String(otp).trim()))
+        return res.status(400).json({ message: "Invalid or expired code. Please try again." });
+
+      // OTP correct — now insert the user
+      const user = await users.createVerified({ name: pending.name, email: normalizedEmail, passwordHash: pending.passwordHash });
+      pendingSignups.delete(normalizedEmail);
+      return res.json({ message: "Email verified successfully." });
+    }
+
+    // Fallback: existing unverified user in DB (e.g. legacy)
     const user = await users.findByOtp(hashOtp(String(otp).trim()));
-    if (!user || user.email.toLowerCase() !== email.toLowerCase())
+    if (!user || user.email.toLowerCase() !== normalizedEmail)
       return res.status(400).json({ message: "Invalid or expired code. Please try again." });
 
     await users.markVerified(user.id);
@@ -68,15 +115,23 @@ async function resendOtp(req, res, next) {
     const { email } = req.body;
     if (!email) return res.status(400).json({ message: "Email is required." });
 
-    const user = await users.findByEmail(email);
-    // Always return success to prevent email enumeration
-    if (!user || user.is_verified) {
-      return res.json({ message: "otp_sent" });
-    }
+    const normalizedEmail = email.toLowerCase().trim();
+    const pending = pendingSignups.get(normalizedEmail);
+
+    if (!pending) return res.json({ message: "otp_sent" }); // prevent enumeration
 
     const otp = generateOtp();
-    await users.setOtp(user.id, hashOtp(otp), new Date(Date.now() + OTP_EXPIRES_MS));
-    sendOtpEmail({ name: user.name, email: user.email, otp }).catch(() => {});
+    pending.otpHash   = hashOtp(otp);
+    pending.expiresAt = Date.now() + OTP_EXPIRES_MS;
+    pendingSignups.set(normalizedEmail, pending);
+
+    try {
+      await sendOtpEmail({ name: pending.name, email: normalizedEmail, otp });
+    } catch (emailErr) {
+      console.error("❌ Resend OTP email failed:", emailErr.message);
+      return res.status(500).json({ message: "Failed to send verification email. Please try again." });
+    }
+
     res.json({ message: "otp_sent" });
   } catch (err) {
     next(err);
