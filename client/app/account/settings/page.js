@@ -2,35 +2,59 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, Trash2, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Lock, Trash2, Eye, EyeOff, AlertCircle, Check, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/store-context";
 import { deleteAccount } from "@/lib/api";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
+const PW_RULES = [
+  { label: "At least 8 characters", test: (p) => p.length >= 8 },
+  { label: "One uppercase letter",  test: (p) => /[A-Z]/.test(p) },
+  { label: "One lowercase letter",  test: (p) => /[a-z]/.test(p) },
+  { label: "One number",            test: (p) => /\d/.test(p) },
+  { label: "One special character", test: (p) => /[^A-Za-z0-9]/.test(p) },
+];
+
+function strengthLevel(p) {
+  const n = PW_RULES.filter((r) => r.test(p)).length;
+  if (n <= 1) return { level: 0, label: "Very weak", color: "bg-red-500" };
+  if (n === 2) return { level: 1, label: "Weak",      color: "bg-orange-400" };
+  if (n === 3) return { level: 2, label: "Fair",      color: "bg-yellow-400" };
+  if (n === 4) return { level: 3, label: "Strong",    color: "bg-blue-500" };
+  return           { level: 4, label: "Very strong", color: "bg-primary" };
+}
+
 export default function SettingsPage() {
   const { token, signout } = useAuth();
   const router = useRouter();
 
-  const [pwForm, setPwForm] = useState({ currentPassword: "", newPassword: "", confirm: "" });
-  const [showPw, setShowPw] = useState(false);
-  const [pwLoading, setPwLoading] = useState(false);
-  const [pwMsg, setPwMsg] = useState(null);
+  const [pwForm, setPwForm]           = useState({ currentPassword: "", newPassword: "", confirm: "" });
+  const [showPw, setShowPw]           = useState(false);
+  const [pwLoading, setPwLoading]     = useState(false);
+  const [pwMsg, setPwMsg]             = useState(null);
   const [pwFieldErrors, setPwFieldErrors] = useState({});
 
   const [delPassword, setDelPassword] = useState("");
-  const [delLoading, setDelLoading] = useState(false);
-  const [delError, setDelError] = useState(null);
+  const [delLoading, setDelLoading]   = useState(false);
+  const [delError, setDelError]       = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const strength = strengthLevel(pwForm.newPassword);
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     const errs = {};
     if (!pwForm.currentPassword) errs.currentPassword = "Current password is required.";
-    if (!pwForm.newPassword || pwForm.newPassword.length < 8) errs.newPassword = "New password must be at least 8 characters.";
+    if (!pwForm.newPassword) {
+      errs.newPassword = "New password is required.";
+    } else if (!PW_RULES.every((r) => r.test(pwForm.newPassword))) {
+      errs.newPassword = "Password does not meet all requirements.";
+    }
     if (!pwForm.confirm) errs.confirm = "Please confirm your new password.";
     else if (pwForm.newPassword !== pwForm.confirm) errs.confirm = "Passwords do not match.";
     if (Object.keys(errs).length) { setPwFieldErrors(errs); return; }
+
     setPwFieldErrors({});
     setPwLoading(true);
     setPwMsg(null);
@@ -41,7 +65,7 @@ export default function SettingsPage() {
         body: JSON.stringify({ currentPassword: pwForm.currentPassword, newPassword: pwForm.newPassword }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed");
+      if (!res.ok) throw new Error(data.message || "Failed.");
       setPwMsg({ type: "success", text: "Password updated successfully." });
       setPwForm({ currentPassword: "", newPassword: "", confirm: "" });
     } catch (err) {
@@ -68,9 +92,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h2 className="font-display text-2xl font-bold">Settings</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage your account security.
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">Manage your account security.</p>
       </div>
 
       {/* Change Password */}
@@ -80,39 +102,64 @@ export default function SettingsPage() {
             label="Current password"
             type={showPw ? "text" : "password"}
             value={pwForm.currentPassword}
-            onChange={v => { setPwForm(p => ({ ...p, currentPassword: v })); setPwFieldErrors(p => ({ ...p, currentPassword: "" })); }}
+            onChange={(v) => { setPwForm((p) => ({ ...p, currentPassword: v })); setPwFieldErrors((p) => ({ ...p, currentPassword: "" })); setPwMsg(null); }}
             error={pwFieldErrors.currentPassword}
             suffix={
-              <button type="button" onClick={() => setShowPw(v => !v)} className="text-muted-foreground">
+              <button type="button" onClick={() => setShowPw((v) => !v)} className="text-muted-foreground hover:text-foreground">
                 {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             }
           />
-          <Field
-            label="New password"
-            type={showPw ? "text" : "password"}
-            value={pwForm.newPassword}
-            onChange={v => { setPwForm(p => ({ ...p, newPassword: v })); setPwFieldErrors(p => ({ ...p, newPassword: "" })); }}
-            error={pwFieldErrors.newPassword}
-          />
+
+          <div>
+            <Field
+              label="New password"
+              type={showPw ? "text" : "password"}
+              value={pwForm.newPassword}
+              onChange={(v) => { setPwForm((p) => ({ ...p, newPassword: v })); setPwFieldErrors((p) => ({ ...p, newPassword: "" })); setPwMsg(null); }}
+              error={pwFieldErrors.newPassword}
+            />
+            {/* Strength bar */}
+            {pwForm.newPassword.length > 0 && (
+              <div className="mt-3 space-y-2">
+                <div className="flex gap-1">
+                  {[0, 1, 2, 3].map((i) => (
+                    <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${i <= strength.level - 1 ? strength.color : "bg-muted"}`} />
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">Strength: <span className="font-semibold">{strength.label}</span></p>
+                <ul className="space-y-1">
+                  {PW_RULES.map((r) => (
+                    <li key={r.label} className={`flex items-center gap-1.5 text-xs transition-colors ${r.test(pwForm.newPassword) ? "text-primary" : "text-muted-foreground"}`}>
+                      <Check className={`h-3 w-3 shrink-0 ${r.test(pwForm.newPassword) ? "opacity-100" : "opacity-30"}`} />
+                      {r.label}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
           <Field
             label="Confirm new password"
             type={showPw ? "text" : "password"}
             value={pwForm.confirm}
-            onChange={v => { setPwForm(p => ({ ...p, confirm: v })); setPwFieldErrors(p => ({ ...p, confirm: "" })); }}
+            onChange={(v) => { setPwForm((p) => ({ ...p, confirm: v })); setPwFieldErrors((p) => ({ ...p, confirm: "" })); setPwMsg(null); }}
             error={pwFieldErrors.confirm}
           />
+
           {pwMsg && (
-            <p className={`text-sm font-medium ${pwMsg.type === "success" ? "text-primary" : "text-red-500"}`}>
+            <p className={`rounded-xl px-4 py-3 text-sm font-medium ${pwMsg.type === "success" ? "bg-primary/10 text-primary" : "bg-red-50 text-red-600 dark:bg-red-950/30"}`}>
               {pwMsg.text}
             </p>
           )}
+
           <button
             type="submit"
             disabled={pwLoading}
-            className="rounded-full bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-glow disabled:opacity-60 transition-colors"
           >
-            {pwLoading ? "Saving…" : "Update password"}
+            {pwLoading ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</> : "Update password"}
           </button>
         </form>
       </Card>
@@ -125,7 +172,7 @@ export default function SettingsPage() {
         {!confirmDelete ? (
           <button
             onClick={() => setConfirmDelete(true)}
-            className="mt-3 rounded-full border border-red-400/40 px-5 py-2 text-sm font-semibold text-red-500 hover:bg-red-500/10"
+            className="mt-3 rounded-full border border-red-400/40 px-5 py-2 text-sm font-semibold text-red-500 hover:bg-red-500/10 transition-colors"
           >
             Delete account
           </button>
@@ -135,7 +182,7 @@ export default function SettingsPage() {
             <input
               type="password"
               value={delPassword}
-              onChange={e => setDelPassword(e.target.value)}
+              onChange={(e) => setDelPassword(e.target.value)}
               placeholder="Your password"
               className="h-11 w-full max-w-xs rounded-full border border-border bg-background px-4 text-sm outline-none focus:border-red-400"
             />
@@ -144,13 +191,13 @@ export default function SettingsPage() {
               <button
                 onClick={handleDeleteAccount}
                 disabled={delLoading || !delPassword}
-                className="rounded-full bg-red-500 px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-full bg-red-500 px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
               >
-                {delLoading ? "Deleting…" : "Confirm delete"}
+                {delLoading ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Deleting…</> : "Confirm delete"}
               </button>
               <button
                 onClick={() => { setConfirmDelete(false); setDelPassword(""); setDelError(null); }}
-                className="rounded-full border border-border px-5 py-2 text-sm font-semibold"
+                className="rounded-full border border-border px-5 py-2 text-sm font-semibold hover:bg-secondary transition-colors"
               >
                 Cancel
               </button>
@@ -182,12 +229,10 @@ function Field({ label, type, value, onChange, suffix, error }) {
         <input
           type={type}
           value={value}
-          onChange={e => onChange(e.target.value)}
-          className={`h-11 w-full rounded-full border bg-background px-4 text-sm outline-none focus:border-primary ${error ? "border-red-400" : "border-border"}`}
+          onChange={(e) => onChange(e.target.value)}
+          className={`h-11 w-full rounded-full border bg-background px-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 ${error ? "border-red-400" : "border-border"} ${suffix ? "pr-11" : ""}`}
         />
-        {suffix && (
-          <span className="absolute right-4 top-1/2 -translate-y-1/2">{suffix}</span>
-        )}
+        {suffix && <span className="absolute right-4 top-1/2 -translate-y-1/2">{suffix}</span>}
       </div>
       {error && (
         <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-500">
