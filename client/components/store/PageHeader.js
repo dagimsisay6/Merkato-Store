@@ -23,9 +23,9 @@ export function PageHeader({
               >
                 {i > 0 && <ChevronRight className="h-3 w-3" />}
 
-                {c.to ? (
+                {c.href ? (
                   <Link
-                    href={c.to}
+                    href={c.href}
                     className="transition hover:text-primary"
                   >
                     {c.label}

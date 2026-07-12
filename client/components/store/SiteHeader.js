@@ -14,6 +14,8 @@ import {
   X,
   Clock,
   TrendingUp,
+  LayoutGrid,
+  Home,
 } from "lucide-react";
 import {
   CATEGORY_LIST,
@@ -511,6 +513,35 @@ export function SiteHeader() {
           </div>
         )}
       </header>
+
+      {/* Mobile bottom tab bar */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-border bg-card pb-safe md:hidden">
+        {[
+          { href: "/", icon: Home, label: "Home" },
+          { href: "/categories", icon: LayoutGrid, label: "Categories" },
+          { href: "/account/wishlist", icon: Heart, label: "Wishlist", badge: wishlist.ids.length },
+          { href: "/cart", icon: ShoppingBag, label: "Cart", badge: cart.count },
+          { href: mounted && isLoggedIn ? (isAdmin ? "/admin-dashboard" : "/account") : "/signin", icon: User, label: "Account" },
+        ].map(({ href, icon: Icon, label, badge }) => (
+          <Link
+            key={label}
+            href={href}
+            className={`flex flex-col items-center gap-0.5 px-3 py-2 text-[10px] font-semibold transition ${
+              path === href ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <span className="relative">
+              <Icon className="h-5 w-5" />
+              {badge > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 grid h-4 w-4 place-items-center rounded-full bg-accent text-[9px] font-bold text-accent-foreground">
+                  {badge}
+                </span>
+              )}
+            </span>
+            {label}
+          </Link>
+        ))}
+      </nav>
     </>
   );
 }

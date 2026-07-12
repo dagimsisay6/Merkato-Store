@@ -200,20 +200,6 @@ export default function AdminLayout({ children }) {
                       <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                       <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">Admin</span>
                     </div>
-                    <Link
-                      href="/account"
-                      onClick={() => setUserMenu(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors"
-                    >
-                      My Account
-                    </Link>
-                    <Link
-                      href="/account/profile"
-                      onClick={() => setUserMenu(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors"
-                    >
-                      Profile Settings
-                    </Link>
                     <div className="border-t border-border">
                       <button
                         onClick={() => { signout(); router.push("/signin"); }}
