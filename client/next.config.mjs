@@ -8,7 +8,6 @@ const nextConfig = {
       { protocol: "http", hostname: "localhost" },
     ],
   },
-  eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
 };
 
