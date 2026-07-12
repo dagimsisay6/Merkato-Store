@@ -24,6 +24,7 @@ function LoginPageContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const registered = searchParams.get("registered") === "1";
 
   const clearField = (key) => setFieldErrors((p) => ({ ...p, [key]: "" }));
 
@@ -91,6 +92,11 @@ function LoginPageContent() {
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
+          {registered && (
+            <p className="rounded-xl bg-primary/10 px-4 py-3 text-sm font-medium text-primary">
+              Account created! Sign in to continue.
+            </p>
+          )}
           {error && (
             <p className="rounded-xl bg-ember/10 px-4 py-3 text-sm font-medium text-ember">
               {error}

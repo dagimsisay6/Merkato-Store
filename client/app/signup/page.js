@@ -33,7 +33,7 @@ export default function SignupPage() {
     setLoading(true);
     try {
       await signup(fullName, email, password);
-      router.push("/account");
+      router.push("/signin?registered=1");
     } catch (err) {
       setError(err.message);
     }
