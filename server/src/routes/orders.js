@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const { getAllOrders, updateOrderStatus, getOrders, getOrderById, createOrder } = require("../controllers/orderController");
-const { protect, adminOnly } = require("../middleware/auth");
+const { protect, adminOnly, customerOnly } = require("../middleware/auth");
 
 router.use(protect);
 
@@ -8,9 +8,9 @@ router.use(protect);
 router.get("/all", adminOnly, getAllOrders);
 router.put("/:id/status", adminOnly, updateOrderStatus);
 
-// User
-router.get("/", getOrders);
-router.get("/:id", getOrderById);
-router.post("/", createOrder);
+// Customer
+router.get("/", customerOnly, getOrders);
+router.get("/:id", customerOnly, getOrderById);
+router.post("/", customerOnly, createOrder);
 
 module.exports = router;

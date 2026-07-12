@@ -7,37 +7,37 @@ const {
   getAllUsers, getUserById, updateUserRole, disableUser,
 } = require("../controllers/userController");
 const { getUserReviews } = require("../controllers/reviewController");
-const { protect, adminOnly } = require("../middleware/auth");
+const { protect, adminOnly, customerOnly } = require("../middleware/auth");
 
 router.use(protect);
 
-// Profile
+// Profile — any authenticated user
 router.get("/profile", getProfile);
 router.put("/profile", updateProfile);
 router.put("/avatar", uploadAvatar);
 router.delete("/avatar", removeAvatar);
 router.put("/password", changePassword);
 
-// Addresses
-router.get("/addresses", getAddresses);
-router.post("/addresses", addAddress);
-router.put("/addresses/:id", updateAddress);
-router.delete("/addresses/:id", deleteAddress);
+// Addresses — customers only
+router.get("/addresses", customerOnly, getAddresses);
+router.post("/addresses", customerOnly, addAddress);
+router.put("/addresses/:id", customerOnly, updateAddress);
+router.delete("/addresses/:id", customerOnly, deleteAddress);
 
-// Wishlist
-router.get("/wishlist", getWishlist);
-router.post("/wishlist/:productId", addToWishlist);
-router.delete("/wishlist/:productId", removeFromWishlist);
+// Wishlist — customers only
+router.get("/wishlist", customerOnly, getWishlist);
+router.post("/wishlist/:productId", customerOnly, addToWishlist);
+router.delete("/wishlist/:productId", customerOnly, removeFromWishlist);
 
-// Cart
-router.get("/cart", getCart);
-router.put("/cart", updateCart);
+// Cart — customers only
+router.get("/cart", customerOnly, getCart);
+router.put("/cart", customerOnly, updateCart);
 
-// Delete account
-router.delete("/account", deleteAccount);
+// Delete account — customers only
+router.delete("/account", customerOnly, deleteAccount);
 
-// Reviews
-router.get("/reviews", getUserReviews);
+// Reviews — customers only
+router.get("/reviews", customerOnly, getUserReviews);
 
 // Admin
 router.get("/", adminOnly, getAllUsers);

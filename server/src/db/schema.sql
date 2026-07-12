@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS users (
   name       TEXT NOT NULL,
   email      TEXT NOT NULL UNIQUE,
   password   TEXT NOT NULL,
-  role       TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+  role       TEXT NOT NULL DEFAULT 'customer' CHECK (role IN ('customer', 'admin', 'disabled')),
   avatar     TEXT,
   phone      TEXT,
   addresses  JSONB DEFAULT '[]',

@@ -32,7 +32,7 @@ async function findAll({ page = 1, limit = 20, search } = {}) {
 async function create({ name, email, password }) {
   const hash = await bcrypt.hash(password, 12);
   const { rows } = await pool.query(
-    "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email, role",
+    "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, 'customer') RETURNING id, name, email, role",
     [name, email.toLowerCase(), hash]
   );
   return rows[0];
@@ -63,6 +63,8 @@ async function findByEmailExcluding(email, excludeId) {
 }
 
 async function updateRole(id, role) {
+  if (!["customer", "admin"].includes(role))
+    throw new Error("Invalid role");
   const { rows } = await pool.query(
     `UPDATE users SET role=$1, updated_at=NOW() WHERE id=$2 RETURNING ${PUBLIC_FIELDS}`,
     [role, id]

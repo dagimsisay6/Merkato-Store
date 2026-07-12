@@ -243,7 +243,7 @@ async function getUserById(req, res, next) {
 async function updateUserRole(req, res, next) {
   try {
     const { role } = req.body;
-    if (!["user", "admin"].includes(role))
+    if (!["customer", "admin"].includes(role))
       return res.status(400).json({ message: "Invalid role" });
     const user = await users.updateRole(req.params.id, role);
     if (!user) return res.status(404).json({ message: "User not found" });
