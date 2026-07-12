@@ -30,7 +30,7 @@ async function signup(req, res, next) {
     if (existing && !existing.is_verified) {
       const otp = generateOtp();
       await users.setOtp(existing.id, hashOtp(otp), new Date(Date.now() + OTP_EXPIRES_MS));
-      await sendOtpEmail({ name: existing.name, email: existing.email, otp });
+      sendOtpEmail({ name: existing.name, email: existing.email, otp }).catch(() => {});
       return res.status(200).json({ message: "otp_sent", email: existing.email });
     }
 
@@ -39,7 +39,7 @@ async function signup(req, res, next) {
     const user = await users.create({ name, email, password });
     const otp  = generateOtp();
     await users.setOtp(user.id, hashOtp(otp), new Date(Date.now() + OTP_EXPIRES_MS));
-    await sendOtpEmail({ name: user.name, email: user.email, otp });
+    sendOtpEmail({ name: user.name, email: user.email, otp }).catch(() => {});
 
     res.status(201).json({ message: "otp_sent", email: user.email });
   } catch (err) {
@@ -76,7 +76,7 @@ async function resendOtp(req, res, next) {
 
     const otp = generateOtp();
     await users.setOtp(user.id, hashOtp(otp), new Date(Date.now() + OTP_EXPIRES_MS));
-    await sendOtpEmail({ name: user.name, email: user.email, otp });
+    sendOtpEmail({ name: user.name, email: user.email, otp }).catch(() => {});
     res.json({ message: "otp_sent" });
   } catch (err) {
     next(err);
@@ -94,7 +94,7 @@ async function signin(req, res, next) {
       // Resend a fresh OTP so they can verify right away
       const otp = generateOtp();
       await users.setOtp(user.id, hashOtp(otp), new Date(Date.now() + OTP_EXPIRES_MS));
-      await sendOtpEmail({ name: user.name, email: user.email, otp });
+      sendOtpEmail({ name: user.name, email: user.email, otp }).catch(() => {});
       return res.status(403).json({ message: "unverified", email: user.email });
     }
     const token = signToken(user.id);
@@ -161,7 +161,7 @@ async function resetPassword(req, res, next) {
     const isSame = await bcrypt.compare(password, user.password);
     if (isSame) return res.status(400).json({ message: "New password cannot be the same as your current password." });
 
-    const newHash = await bcrypt.hash(password, 12);
+    const newHash = await bcrypt.hash(password, 10);
     await users.clearResetToken(user.id, newHash);
 
     res.json({ message: "Your password has been successfully updated." });

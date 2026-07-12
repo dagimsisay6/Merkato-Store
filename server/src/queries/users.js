@@ -30,7 +30,7 @@ async function findAll({ page = 1, limit = 20, search } = {}) {
 }
 
 async function create({ name, email, password }) {
-  const hash = await bcrypt.hash(password, 12);
+  const hash = await bcrypt.hash(password, 10);
   const { rows } = await pool.query(
     "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, 'customer') RETURNING id, name, email, role",
     [name, email.toLowerCase(), hash]
@@ -73,7 +73,7 @@ async function updateRole(id, role) {
 }
 
 async function updatePassword(id, password) {
-  const hash = await bcrypt.hash(password, 12);
+  const hash = await bcrypt.hash(password, 10);
   await pool.query("UPDATE users SET password=$1, updated_at=NOW() WHERE id=$2", [hash, id]);
 }
 
