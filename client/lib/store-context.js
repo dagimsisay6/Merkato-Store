@@ -171,12 +171,6 @@ export function StoreProvider({ children }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Sign up failed");
-      localStorage.setItem("merkato.token", data.token);
-      localStorage.setItem("merkato.user", JSON.stringify(data.user));
-      document.cookie = `merkato.token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}`;
-      document.cookie = `merkato.role=${data.user.role}; path=/; max-age=${7 * 24 * 60 * 60}`;
-      setToken(data.token);
-      setUser(data.user);
       return data.user;
     },
     signout: () => {

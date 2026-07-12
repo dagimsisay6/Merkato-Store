@@ -189,6 +189,26 @@ export async function signUp(data) {
   return post("/auth/signup", data);
 }
 
+export async function forgotPassword(email) {
+  return post("/auth/forgot-password", { email });
+}
+
+export async function validateResetToken(token) {
+  const res = await fetch(`${BASE}/auth/validate-reset-token/${token}`, { cache: "no-store" });
+  return res.json();
+}
+
+export async function resetPassword(token, password) {
+  const res = await fetch(`${BASE}/auth/reset-password/${token}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Reset failed");
+  return data;
+}
+
 // newsletter
 
 export async function subscribeNewsletter(email) {
