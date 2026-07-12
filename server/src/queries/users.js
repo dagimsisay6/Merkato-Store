@@ -1,7 +1,7 @@
 const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
 
-const PUBLIC_FIELDS = "id, name, email, role, avatar, phone, addresses, wishlist, cart, created_at";
+const PUBLIC_FIELDS = "id, name, email, role, avatar, phone, addresses, wishlist, cart, is_verified, created_at";
 
 async function findByEmail(email) {
   const { rows } = await pool.query("SELECT *, password FROM users WHERE email = $1", [email.toLowerCase()]);
@@ -135,4 +135,27 @@ async function clearResetToken(id, newPasswordHash) {
   );
 }
 
-module.exports = { findByEmail, findById, findAll, create, update, updateEmail, findByEmailExcluding, updateRole, updatePassword, disable, updateAddresses, updateWishlist, updateCart, comparePassword, setResetToken, findByResetToken, clearResetToken };
+// ── OTP ──────────────────────────────────────────────────
+async function setOtp(id, otpHash, expires) {
+  await pool.query(
+    "UPDATE users SET otp_hash=$1, otp_expires=$2, updated_at=NOW() WHERE id=$3",
+    [otpHash, expires, id]
+  );
+}
+
+async function findByOtp(otpHash) {
+  const { rows } = await pool.query(
+    "SELECT id, name, email, is_verified FROM users WHERE otp_hash=$1 AND otp_expires > NOW()",
+    [otpHash]
+  );
+  return rows[0] || null;
+}
+
+async function markVerified(id) {
+  await pool.query(
+    "UPDATE users SET is_verified=TRUE, otp_hash=NULL, otp_expires=NULL, updated_at=NOW() WHERE id=$1",
+    [id]
+  );
+}
+
+module.exports = { findByEmail, findById, findAll, create, update, updateEmail, findByEmailExcluding, updateRole, updatePassword, disable, updateAddresses, updateWishlist, updateCart, comparePassword, setResetToken, findByResetToken, clearResetToken, setOtp, findByOtp, markVerified };

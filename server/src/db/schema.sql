@@ -46,6 +46,9 @@ CREATE TABLE IF NOT EXISTS users (
   cart                   JSONB DEFAULT '[]',
   reset_password_token   TEXT,
   reset_password_expires TIMESTAMPTZ,
+  is_verified            BOOLEAN     NOT NULL DEFAULT FALSE,
+  otp_hash               TEXT,
+  otp_expires            TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

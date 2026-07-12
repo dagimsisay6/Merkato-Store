@@ -10,7 +10,7 @@ function getTransporter() {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
-    tls: { rejectUnauthorized: false },
+    tls: { rejectUnauthorized: true },
   });
 }
 
@@ -232,6 +232,45 @@ async function sendApplicationAck({ firstName, email, position }) {
   });
 }
 
+async function sendOtpEmail({ name, email, otp }) {
+  const transporter = getTransporter();
+  if (!transporter) { console.warn("⚠️  SMTP not configured — skipping OTP email"); return; }
+  await transporter.sendMail({
+    from: FROM(),
+    to: email,
+    subject: "Your Merkato Store verification code",
+    html: `
+      <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
+        <div style="background:linear-gradient(135deg,#2d7a5a,#4ade80);padding:32px 40px">
+          <h1 style="color:#fff;margin:0;font-size:24px;font-weight:800">Merkato Store</h1>
+          <p style="color:rgba(255,255,255,0.85);margin:4px 0 0;font-size:13px">Email Verification</p>
+        </div>
+        <div style="padding:40px">
+          <h2 style="color:#111827;font-size:20px;margin:0 0 12px">Hi ${name},</h2>
+          <p style="color:#374151;line-height:1.7;margin:0 0 24px">
+            Use the code below to verify your Merkato Store account. It expires in <strong>10 minutes</strong>.
+          </p>
+          <div style="text-align:center;margin:32px 0">
+            <div style="display:inline-block;background:#f0fdf4;border:2px solid #4ade80;border-radius:16px;padding:20px 48px">
+              <p style="margin:0;font-size:42px;font-weight:900;letter-spacing:12px;color:#2d7a5a;font-family:monospace">${otp}</p>
+            </div>
+          </div>
+          <div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:14px 18px;margin:0 0 24px">
+            <p style="margin:0;font-size:13px;color:#854d0e">⏱ This code expires in <strong>10 minutes</strong>. Do not share it with anyone.</p>
+          </div>
+          <p style="color:#374151;font-size:13px;line-height:1.7;margin:0">
+            If you did not create a Merkato Store account, you can safely ignore this email.
+          </p>
+          <p style="color:#6b7280;font-size:13px;margin:24px 0 0">— Merkato Store Team</p>
+        </div>
+        <div style="background:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb">
+          <p style="margin:0;font-size:12px;color:#9ca3af">© ${new Date().getFullYear()} Merkato Store. All rights reserved.</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
 async function sendApplicationReply({ firstName, email, position, replyText, adminName, status }) {
   const transporter = getTransporter();
   if (!transporter) return;
@@ -265,4 +304,4 @@ async function sendApplicationReply({ firstName, email, position, replyText, adm
   });
 }
 
-module.exports = { sendAcknowledgment, sendReply, sendPasswordReset, sendProfileUpdated, sendPasswordChanged, sendApplicationAck, sendApplicationReply };
+module.exports = { sendAcknowledgment, sendReply, sendPasswordReset, sendProfileUpdated, sendPasswordChanged, sendApplicationAck, sendApplicationReply, sendOtpEmail };
