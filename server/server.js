@@ -50,6 +50,14 @@ app.use("/api", applicationRoutes);
 // Health check
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
+// Keep-alive: ping self every 14 min to prevent Render free tier spin-down
+if (process.env.NODE_ENV === "production") {
+  const SELF = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+  setInterval(() => {
+    fetch(`${SELF}/api/health`).catch(() => {});
+  }, 14 * 60 * 1000);
+}
+
 // 404
 app.use((req, res) => res.status(404).json({ message: "Route not found" }));
 

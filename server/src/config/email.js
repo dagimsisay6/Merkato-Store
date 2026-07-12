@@ -1,17 +1,26 @@
 const nodemailer = require("nodemailer");
 
+let _transporter = null;
+
 function getTransporter() {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) return null;
-  return nodemailer.createTransport({
+  if (_transporter) return _transporter;
+  _transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || "smtp.gmail.com",
     port: Number(process.env.SMTP_PORT) || 465,
-    secure: Number(process.env.SMTP_PORT) !== 587, // true for 465, false for 587
+    secure: Number(process.env.SMTP_PORT) !== 587,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
     tls: { rejectUnauthorized: false },
+    pool: true,          // keep connections alive
+    maxConnections: 3,
+    socketTimeout: 30000,
   });
+  // verify on startup so we catch misconfig early
+  _transporter.verify().then(() => console.log("✅ SMTP ready")).catch(e => console.error("❌ SMTP error:", e.message));
+  return _transporter;
 }
 
 const FROM = () => `"Merkato Store Support" <${process.env.SMTP_USER}>`;
