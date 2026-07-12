@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Minus, Plus, Trash2, Tag, ShoppingBag, ArrowRight } from "lucide-react";
@@ -12,8 +12,12 @@ const fmt = (n) => `$${Number(n).toFixed(2)}`;
 
 export default function CartPage() {
   const cart = useCart();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isAdmin } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (isAdmin) router.replace("/admin-dashboard");
+  }, [isAdmin]);
   const [selected, setSelected] = useState(() => new Set());
   const [coupon, setCoupon] = useState("");
   const [applied, setApplied] = useState(null);

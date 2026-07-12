@@ -32,12 +32,19 @@ const NAV = [
 export default function AdminLayout({ children }) {
   const path     = usePathname();
   const router   = useRouter();
-  const { signout, user, mounted } = useAuth();
+  const { signout, user, mounted, isAdmin, isLoggedIn } = useAuth();
   const [open,      setOpen]      = useState(false);
   const [unread,    setUnread]    = useState(0);
   const [newApps,   setNewApps]   = useState(0);
   const [userMenu,  setUserMenu]  = useState(false);
   const userMenuRef = useRef(null);
+
+  // Guard: redirect non-admins
+  useEffect(() => {
+    if (!mounted) return;
+    if (!isLoggedIn) router.replace(`/signin?redirect=${encodeURIComponent(path)}`);
+    else if (!isAdmin) router.replace("/");
+  }, [mounted, isLoggedIn, isAdmin]);
 
   useEffect(() => {
     if (!userMenu) return;
@@ -63,6 +70,8 @@ export default function AdminLayout({ children }) {
     const id = setInterval(fetch, 30000);
     return () => clearInterval(id);
   }, []);
+
+  if (!mounted || !isLoggedIn || !isAdmin) return null;
 
   const Sidebar = ({ onNav }) => (
     <div className="flex h-full flex-col">

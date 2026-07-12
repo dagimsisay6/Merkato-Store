@@ -20,7 +20,7 @@ const STEPS = [
 export default function CheckoutLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isLoggedIn, mounted } = useAuth();
+  const { isLoggedIn, isAdmin, mounted } = useAuth();
   const currentIdx = STEPS.findIndex((s) => pathname.startsWith(s.path));
 
   const [products, setProducts] = useState([]);
@@ -38,6 +38,10 @@ export default function CheckoutLayout({ children }) {
       });
       const t = setTimeout(() => router.replace(`/signin?redirect=${encodeURIComponent(pathname)}`), 2500);
       return () => clearTimeout(t);
+    }
+    if (isAdmin) {
+      router.replace("/admin-dashboard");
+      return;
     }
     const session = getSession();
     if (!session?.items?.length) {
