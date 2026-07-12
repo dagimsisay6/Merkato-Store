@@ -33,7 +33,7 @@ export default function SignupPage() {
     setLoading(true);
     try {
       await signup(fullName, email, password);
-      router.push("/signin?registered=1");
+      router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
     } catch (err) {
       setError(err.message);
     }
