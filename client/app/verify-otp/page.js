@@ -1,12 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, Mail } from "lucide-react";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
 export default function VerifyOtpPage() {
+  return (
+    <Suspense>
+      <VerifyOtp />
+    </Suspense>
+  );
+}
+
+function VerifyOtp() {
   const router = useRouter();
   const params = useSearchParams();
   const email = params.get("email") || "";
