@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { SlidersHorizontal, ArrowDownUp, Loader2 } from "lucide-react";
@@ -18,6 +18,14 @@ const SORTS = [
 ];
 
 export default function ProductsPage() {
+  return (
+    <Suspense fallback={<ProductsPageSkeleton />}>
+      <ProductsPageContent />
+    </Suspense>
+  );
+}
+
+function ProductsPageContent() {
   const searchParams = useSearchParams();
 
   const [products,    setProducts]    = useState([]);
@@ -195,6 +203,22 @@ export default function ProductsPage() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProductsPageSkeleton() {
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-10">
+      <div className="mb-6 h-10 animate-pulse rounded-full bg-muted/50" />
+      <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
+        <div className="hidden h-80 animate-pulse rounded-2xl bg-muted/50 lg:block" />
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div key={index} className="h-72 animate-pulse rounded-3xl bg-muted/50" />
+          ))}
         </div>
       </div>
     </div>
