@@ -95,4 +95,26 @@ function comparePassword(candidate, hash) {
   return bcrypt.compare(candidate, hash);
 }
 
-module.exports = { findByEmail, findById, findAll, create, update, updateRole, updatePassword, disable, updateAddresses, updateWishlist, updateCart, comparePassword };
+async function setResetToken(id, tokenHash, expires) {
+  await pool.query(
+    "UPDATE users SET reset_password_token=$1, reset_password_expires=$2, updated_at=NOW() WHERE id=$3",
+    [tokenHash, expires, id]
+  );
+}
+
+async function findByResetToken(tokenHash) {
+  const { rows } = await pool.query(
+    "SELECT id, email, password FROM users WHERE reset_password_token=$1 AND reset_password_expires > NOW()",
+    [tokenHash]
+  );
+  return rows[0] || null;
+}
+
+async function clearResetToken(id, newPasswordHash) {
+  await pool.query(
+    "UPDATE users SET password=$1, reset_password_token=NULL, reset_password_expires=NULL, updated_at=NOW() WHERE id=$2",
+    [newPasswordHash, id]
+  );
+}
+
+module.exports = { findByEmail, findById, findAll, create, update, updateRole, updatePassword, disable, updateAddresses, updateWishlist, updateCart, comparePassword, setResetToken, findByResetToken, clearResetToken };

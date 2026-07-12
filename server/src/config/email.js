@@ -89,4 +89,49 @@ async function sendReply({ customerName, customerEmail, subject, replyText, admi
   });
 }
 
-module.exports = { sendAcknowledgment, sendReply };
+async function sendPasswordReset({ email, resetUrl, expiresMinutes = 15 }) {
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.warn("⚠️  SMTP not configured — skipping password reset email");
+    return;
+  }
+  await transporter.sendMail({
+    from: FROM(),
+    to: email,
+    subject: "Reset Your Merkato Store Password",
+    html: `
+      <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
+        <div style="background:linear-gradient(135deg,#2d7a5a,#4ade80);padding:32px 40px">
+          <h1 style="color:#fff;margin:0;font-size:24px;font-weight:800">Merkato Store</h1>
+          <p style="color:rgba(255,255,255,0.85);margin:4px 0 0;font-size:13px">Africa &amp; Middle East's Marketplace</p>
+        </div>
+        <div style="padding:40px">
+          <h2 style="color:#111827;font-size:20px;margin:0 0 12px">Reset Your Password</h2>
+          <p style="color:#374151;line-height:1.7;margin:0 0 24px">
+            We received a request to reset the password for your Merkato Store account.
+            Click the button below to create a new password.
+          </p>
+          <div style="text-align:center;margin:32px 0">
+            <a href="${resetUrl}" style="display:inline-block;background:linear-gradient(135deg,#2d7a5a,#4ade80);color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 36px;border-radius:50px">
+              Reset Password
+            </a>
+          </div>
+          <p style="color:#6b7280;font-size:13px;margin:0 0 8px">Or copy and paste this link into your browser:</p>
+          <p style="color:#2d7a5a;font-size:12px;word-break:break-all;margin:0 0 24px">${resetUrl}</p>
+          <div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:14px 18px;margin:0 0 24px">
+            <p style="margin:0;font-size:13px;color:#854d0e">⏱ This link will expire in <strong>${expiresMinutes} minutes</strong>.</p>
+          </div>
+          <p style="color:#374151;font-size:13px;line-height:1.7;margin:0">
+            If you did not request a password reset, you can safely ignore this email. Your password will not change.
+          </p>
+          <p style="color:#6b7280;font-size:13px;margin:24px 0 0">— Merkato Store Support Team</p>
+        </div>
+        <div style="background:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb">
+          <p style="margin:0;font-size:12px;color:#9ca3af">© ${new Date().getFullYear()} Merkato Store. All rights reserved.</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
+module.exports = { sendAcknowledgment, sendReply, sendPasswordReset };

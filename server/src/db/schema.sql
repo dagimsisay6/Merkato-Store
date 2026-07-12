@@ -43,7 +43,9 @@ CREATE TABLE IF NOT EXISTS users (
   phone      TEXT,
   addresses  JSONB DEFAULT '[]',
   wishlist   INT[] DEFAULT '{}',
-  cart       JSONB DEFAULT '[]',
+  cart                   JSONB DEFAULT '[]',
+  reset_password_token   TEXT,
+  reset_password_expires TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
