@@ -13,8 +13,10 @@ import {
   Upload,
   CheckCircle,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { PageHeader } from "@/components/store/PageHeader";
+import { submitApplication } from "@/lib/api";
 
 const POSITIONS = [
   "Senior Frontend Engineer",
@@ -66,30 +68,69 @@ function ApplyForm() {
     setFieldErrors((p) => ({ ...p, [field]: "" }));
   };
 
+  const [serverError, setServerError] = useState("");
+
   const handleResume = (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setForm((f) => ({ ...f, resume: file }));
-      setFileName(file.name);
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setFieldErrors((p) => ({ ...p, resume: "File must be under 5 MB." }));
+      return;
     }
+    setForm((f) => ({ ...f, resume: file }));
+    setFileName(file.name);
   };
+
+  const toBase64 = (file) =>
+    new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setServerError("");
     const errs = {};
     if (!form.position) errs.position = "Please select a position.";
     if (!form.firstName.trim()) errs.firstName = "First name is required.";
     if (!form.lastName.trim()) errs.lastName = "Last name is required.";
     if (!form.email.trim()) errs.email = "Email address is required.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+      errs.email = "Please enter a valid email.";
     if (!form.location.trim()) errs.location = "Location is required.";
-    if (!form.experience) errs.experience = "Please select your experience level.";
+    if (!form.experience)
+      errs.experience = "Please select your experience level.";
     if (!form.resume) errs.resume = "Please upload your resume.";
-    if (!form.coverLetter.trim()) errs.coverLetter = "Cover letter is required.";
-    if (Object.keys(errs).length) { setFieldErrors(errs); return; }
+    if (!form.coverLetter.trim())
+      errs.coverLetter = "Cover letter is required.";
+    if (Object.keys(errs).length) {
+      setFieldErrors(errs);
+      return;
+    }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    setLoading(false);
-    setSubmitted(true);
+    try {
+      const resumeData = form.resume ? await toBase64(form.resume) : null;
+      await submitApplication({
+        position: form.position,
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
+        phone: form.phone || null,
+        location: form.location.trim(),
+        linkedin: form.linkedin || null,
+        portfolio: form.portfolio || null,
+        experience: form.experience,
+        coverLetter: form.coverLetter.trim(),
+        resumeData,
+      });
+      setSubmitted(true);
+    } catch (err) {
+      setServerError(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {
@@ -151,6 +192,11 @@ function ApplyForm() {
         </Link>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-8">
+          {serverError && (
+            <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600 dark:bg-red-950/30">
+              {serverError}
+            </p>
+          )}
           {/* Position */}
           <Section title="Position" icon={Briefcase}>
             <Field label="Position Applying For" error={fieldErrors.position}>
@@ -211,7 +257,11 @@ function ApplyForm() {
                 className="input-field"
               />
             </Field>
-            <Field label="Current Location" icon={MapPin} error={fieldErrors.location}>
+            <Field
+              label="Current Location"
+              icon={MapPin}
+              error={fieldErrors.location}
+            >
               <input
                 type="text"
                 value={form.location}
@@ -268,7 +318,10 @@ function ApplyForm() {
 
           {/* Resume */}
           <Section title="Resume / CV" icon={Upload}>
-            <Field label="Upload Resume (PDF, DOC — max 5MB)" error={fieldErrors.resume}>
+            <Field
+              label="Upload Resume (PDF, DOC — max 5MB)"
+              error={fieldErrors.resume}
+            >
               <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border bg-secondary/40 px-6 py-8 transition hover:border-primary hover:bg-primary/5">
                 <Upload className="h-6 w-6 text-muted-foreground" />
                 <span className="text-sm font-medium text-muted-foreground">
@@ -277,7 +330,10 @@ function ApplyForm() {
                 <input
                   type="file"
                   accept=".pdf,.doc,.docx"
-                  onChange={(e) => { handleResume(e); setFieldErrors((p) => ({ ...p, resume: "" })); }}
+                  onChange={(e) => {
+                    handleResume(e);
+                    setFieldErrors((p) => ({ ...p, resume: "" }));
+                  }}
                   className="sr-only"
                 />
               </label>
@@ -286,7 +342,10 @@ function ApplyForm() {
 
           {/* Cover Letter */}
           <Section title="Cover Letter" icon={Mail}>
-            <Field label="Tell us why you'd be a great fit" error={fieldErrors.coverLetter}>
+            <Field
+              label="Tell us why you'd be a great fit"
+              error={fieldErrors.coverLetter}
+            >
               <textarea
                 value={form.coverLetter}
                 onChange={set("coverLetter")}
@@ -311,9 +370,15 @@ function ApplyForm() {
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex h-12 items-center justify-center rounded-full bg-primary px-10 text-sm font-bold text-primary-foreground transition hover:bg-primary-glow disabled:opacity-50"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-10 text-sm font-bold text-primary-foreground transition hover:bg-primary-glow disabled:opacity-50"
             >
-              {loading ? "Submitting..." : "Submit Application"}
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Submitting…
+                </>
+              ) : (
+                "Submit Application"
+              )}
             </button>
           </div>
         </form>
@@ -366,10 +431,10 @@ function Field({ label, children, error }) {
       {children}
       {error && (
         <p className="flex items-center gap-1.5 text-xs font-medium text-red-500">
-          <AlertCircle className="h-3.5 w-3.5 shrink-0" />{error}
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          {error}
         </p>
       )}
     </div>
   );
 }
-

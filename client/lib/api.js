@@ -215,6 +215,61 @@ export async function subscribeNewsletter(email) {
   return post("/newsletter/subscribe", { email });
 }
 
+// careers
+
+export async function submitApplication(data) {
+  const res = await fetch(`${BASE}/careers/apply`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message || "Submission failed");
+  return json;
+}
+
+export async function getAdminApplications({ page = 1, limit = 20, status, search } = {}, token) {
+  const params = new URLSearchParams({ page, limit });
+  if (status && status !== "all") params.set("status", status);
+  if (search) params.set("search", search);
+  return authGet(`/admin/applications?${params}`, token);
+}
+
+export async function getAdminApplication(id, token) {
+  return authGet(`/admin/applications/${id}`, token);
+}
+
+export async function updateApplicationStatus(id, status, token) {
+  const res = await fetch(`${BASE}/admin/applications/${id}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error(`PATCH status → ${res.status}`);
+  return res.json();
+}
+
+export async function replyToApplication(id, reply, token) {
+  return post(`/admin/applications/${id}/reply`, { reply }, token);
+}
+
+export async function deleteAdminApplication(id, token) {
+  return authDelete(`/admin/applications/${id}`, token);
+}
+
+export async function restoreAdminApplication(id, token) {
+  const res = await fetch(`${BASE}/admin/applications/${id}/restore`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`PATCH restore → ${res.status}`);
+  return res.json();
+}
+
+export async function getNewApplicationsCount(token) {
+  return authGet("/admin/applications/new-count", token);
+}
+
 // checkout
 
 export async function createOrder(payload, token) {
