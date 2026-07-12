@@ -8,6 +8,7 @@ import {
   ShoppingBag,
   Users,
   MessageSquare,
+  Briefcase,
   LogOut,
   Menu,
   X,
@@ -16,7 +17,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/store-context";
-import { getUnreadCount } from "@/lib/api";
+import { getUnreadCount, getNewApplicationsCount } from "@/lib/api";
 import { NotificationBell } from "@/components/store/NotificationBell";
 
 const NAV = [
@@ -24,7 +25,8 @@ const NAV = [
   { href: "/admin-dashboard/products", icon: Package,         label: "Products" },
   { href: "/admin-dashboard/orders",   icon: ShoppingBag,     label: "Orders" },
   { href: "/admin-dashboard/users",    icon: Users,           label: "Users" },
-  { href: "/admin-dashboard/messages", icon: MessageSquare,   label: "Messages" },
+  { href: "/admin-dashboard/messages",     icon: MessageSquare, label: "Messages" },
+  { href: "/admin-dashboard/applications",  icon: Briefcase,     label: "Applications" },
 ];
 
 export default function AdminLayout({ children }) {
@@ -33,6 +35,7 @@ export default function AdminLayout({ children }) {
   const { signout, user, mounted } = useAuth();
   const [open,      setOpen]      = useState(false);
   const [unread,    setUnread]    = useState(0);
+  const [newApps,   setNewApps]   = useState(0);
   const [userMenu,  setUserMenu]  = useState(false);
   const userMenuRef = useRef(null);
 
@@ -54,6 +57,7 @@ export default function AdminLayout({ children }) {
       const t = localStorage.getItem("merkato.token");
       if (!t) return;
       getUnreadCount(t).then((d) => setUnread(d?.count ?? 0)).catch(() => {});
+      getNewApplicationsCount(t).then((d) => setNewApps(d?.count ?? 0)).catch(() => {});
     };
     fetch();
     const id = setInterval(fetch, 30000);
@@ -94,6 +98,13 @@ export default function AdminLayout({ children }) {
                   active ? "bg-white/20 text-white" : "bg-primary text-primary-foreground"
                 }`}>
                   {unread > 99 ? "99+" : unread}
+                </span>
+              )}
+              {n.label === "Applications" && newApps > 0 && (
+                <span className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold ${
+                  active ? "bg-white/20 text-white" : "bg-accent text-accent-foreground"
+                }`}>
+                  {newApps > 99 ? "99+" : newApps}
                 </span>
               )}
             </Link>
