@@ -1,53 +1,19 @@
-const nodemailer = require("nodemailer");
-const dns = require("dns");
+const { Resend } = require("resend");
 
-let _transporter = null;
+const FROM = () => process.env.RESEND_FROM || "Merkato Store <onboarding@resend.dev>";
 
-async function getTransporter() {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) return null;
-  if (_transporter) return _transporter;
-  const port = Number(process.env.SMTP_PORT) || 587;
-  const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
-
-  // Resolve to IPv4 explicitly — Render free tier has no IPv6 outbound
-  let host = smtpHost;
-  try {
-    const addresses = await dns.promises.resolve4(smtpHost);
-    if (addresses.length) host = addresses[0];
-  } catch (e) {
-    console.warn("⚠️  DNS resolve4 failed, using hostname:", e.message);
-  }
-
-  _transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    tls: { rejectUnauthorized: false, servername: smtpHost },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-  });
-  _transporter
-    .verify()
-    .then(() => console.log("✅ SMTP ready"))
-    .catch((e) => {
-      console.error("❌ SMTP error:", e.message);
-      _transporter = null;
-    });
-  return _transporter;
-}
-
-const FROM = () => `"Merkato Store Support" <${process.env.SMTP_USER}>`;
-
-async function sendAcknowledgment({ name, email, subject }) {
-  const transporter = await getTransporter();
-  if (!transporter) {
-    console.warn("⚠️  SMTP not configured — skipping acknowledgment email");
+async function send({ to, subject, html }) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("⚠️  RESEND_API_KEY not set — skipping email");
     return;
   }
-  await transporter.sendMail({
-    from: FROM(),
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const { error } = await resend.emails.send({ from: FROM(), to, subject, html });
+  if (error) throw new Error(error.message);
+}
+
+async function sendAcknowledgment({ name, email, subject }) {
+  await send({
     to: email,
     subject: `We received your message — ${subject}`,
     html: `
@@ -58,9 +24,7 @@ async function sendAcknowledgment({ name, email, subject }) {
         </div>
         <div style="padding:40px">
           <h2 style="color:#111827;font-size:20px;margin:0 0 12px">Hi ${name},</h2>
-          <p style="color:#374151;line-height:1.7;margin:0 0 16px">
-            Thank you for contacting Merkato Store. We have received your message and our support team will respond as soon as possible.
-          </p>
+          <p style="color:#374151;line-height:1.7;margin:0 0 16px">Thank you for contacting Merkato Store. We have received your message and our support team will respond as soon as possible.</p>
           <div style="background:#f9fafb;border-left:4px solid #2d7a5a;border-radius:4px;padding:16px 20px;margin:24px 0">
             <p style="margin:0;font-size:13px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Your subject</p>
             <p style="margin:6px 0 0;color:#111827;font-weight:600">${subject}</p>
@@ -76,20 +40,8 @@ async function sendAcknowledgment({ name, email, subject }) {
   });
 }
 
-async function sendReply({
-  customerName,
-  customerEmail,
-  subject,
-  replyText,
-  adminName,
-}) {
-  const transporter = await getTransporter();
-  if (!transporter) {
-    console.warn("⚠️  SMTP not configured — skipping reply email");
-    return;
-  }
-  await transporter.sendMail({
-    from: FROM(),
+async function sendReply({ customerName, customerEmail, subject, replyText, adminName }) {
+  await send({
     to: customerEmail,
     subject: `Re: ${subject}`,
     html: `
@@ -100,15 +52,11 @@ async function sendReply({
         </div>
         <div style="padding:40px">
           <h2 style="color:#111827;font-size:20px;margin:0 0 12px">Hi ${customerName},</h2>
-          <p style="color:#374151;line-height:1.7;margin:0 0 24px">
-            ${adminName} from Merkato Store Support has replied to your message:
-          </p>
+          <p style="color:#374151;line-height:1.7;margin:0 0 24px">${adminName} from Merkato Store Support has replied to your message:</p>
           <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px 24px;margin:0 0 24px">
             <p style="margin:0;color:#166534;line-height:1.7;white-space:pre-wrap">${replyText}</p>
           </div>
-          <p style="color:#6b7280;font-size:13px;margin:0">
-            If you have further questions, visit our <a href="${process.env.CLIENT_URL}/contact" style="color:#2d7a5a">contact page</a>.
-          </p>
+          <p style="color:#6b7280;font-size:13px;margin:0">If you have further questions, visit our <a href="${process.env.CLIENT_URL}/contact" style="color:#2d7a5a">contact page</a>.</p>
           <p style="color:#6b7280;font-size:13px;margin:24px 0 0">— ${adminName}, Merkato Store Support</p>
         </div>
         <div style="background:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb">
@@ -120,13 +68,7 @@ async function sendReply({
 }
 
 async function sendPasswordReset({ email, resetUrl, expiresMinutes = 15 }) {
-  const transporter = await getTransporter();
-  if (!transporter) {
-    console.warn("⚠️  SMTP not configured — skipping password reset email");
-    return;
-  }
-  await transporter.sendMail({
-    from: FROM(),
+  await send({
     to: email,
     subject: "Reset Your Merkato Store Password",
     html: `
@@ -137,23 +79,16 @@ async function sendPasswordReset({ email, resetUrl, expiresMinutes = 15 }) {
         </div>
         <div style="padding:40px">
           <h2 style="color:#111827;font-size:20px;margin:0 0 12px">Reset Your Password</h2>
-          <p style="color:#374151;line-height:1.7;margin:0 0 24px">
-            We received a request to reset the password for your Merkato Store account.
-            Click the button below to create a new password.
-          </p>
+          <p style="color:#374151;line-height:1.7;margin:0 0 24px">We received a request to reset the password for your Merkato Store account. Click the button below to create a new password.</p>
           <div style="text-align:center;margin:32px 0">
-            <a href="${resetUrl}" style="display:inline-block;background:linear-gradient(135deg,#2d7a5a,#4ade80);color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 36px;border-radius:50px">
-              Reset Password
-            </a>
+            <a href="${resetUrl}" style="display:inline-block;background:linear-gradient(135deg,#2d7a5a,#4ade80);color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 36px;border-radius:50px">Reset Password</a>
           </div>
           <p style="color:#6b7280;font-size:13px;margin:0 0 8px">Or copy and paste this link into your browser:</p>
           <p style="color:#2d7a5a;font-size:12px;word-break:break-all;margin:0 0 24px">${resetUrl}</p>
           <div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:14px 18px;margin:0 0 24px">
             <p style="margin:0;font-size:13px;color:#854d0e">⏱ This link will expire in <strong>${expiresMinutes} minutes</strong>.</p>
           </div>
-          <p style="color:#374151;font-size:13px;line-height:1.7;margin:0">
-            If you did not request a password reset, you can safely ignore this email. Your password will not change.
-          </p>
+          <p style="color:#374151;font-size:13px;line-height:1.7;margin:0">If you did not request a password reset, you can safely ignore this email.</p>
           <p style="color:#6b7280;font-size:13px;margin:24px 0 0">— Merkato Store Support Team</p>
         </div>
         <div style="background:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb">
@@ -165,16 +100,8 @@ async function sendPasswordReset({ email, resetUrl, expiresMinutes = 15 }) {
 }
 
 async function sendProfileUpdated({ name, email, changedFields }) {
-  const transporter = await getTransporter();
-  if (!transporter) return;
-  const fieldList = changedFields
-    .map(
-      (f) =>
-        `<li style="color:#374151;font-size:14px;line-height:1.8">${f}</li>`,
-    )
-    .join("");
-  await transporter.sendMail({
-    from: FROM(),
+  const fieldList = changedFields.map(f => `<li style="color:#374151;font-size:14px;line-height:1.8">${f}</li>`).join("");
+  await send({
     to: email,
     subject: "Your Merkato Store profile has been updated",
     html: `
@@ -199,11 +126,8 @@ async function sendProfileUpdated({ name, email, changedFields }) {
 }
 
 async function sendPasswordChanged({ name, email }) {
-  const transporter = await getTransporter();
-  if (!transporter) return;
   const time = new Date().toUTCString();
-  await transporter.sendMail({
-    from: FROM(),
+  await send({
     to: email,
     subject: "Your Merkato Store password has been changed",
     html: `
@@ -218,7 +142,7 @@ async function sendPasswordChanged({ name, email }) {
           <div style="background:#f9fafb;border-left:4px solid #2d7a5a;border-radius:4px;padding:14px 18px;margin:0 0 24px">
             <p style="margin:0;font-size:13px;color:#6b7280">⏰ Changed at: <strong style="color:#111827">${time}</strong></p>
           </div>
-          <p style="color:#374151;line-height:1.7;margin:0 0 8px">If you did not make this change, please <a href="${process.env.CLIENT_URL}/forgot-password" style="color:#2d7a5a;font-weight:600">reset your password</a> immediately and contact support.</p>
+          <p style="color:#374151;line-height:1.7;margin:0 0 8px">If you did not make this change, please <a href="${process.env.CLIENT_URL}/forgot-password" style="color:#2d7a5a;font-weight:600">reset your password</a> immediately.</p>
           <p style="color:#6b7280;font-size:13px;margin:24px 0 0">— Merkato Store Support Team</p>
         </div>
         <div style="background:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb">
@@ -230,10 +154,7 @@ async function sendPasswordChanged({ name, email }) {
 }
 
 async function sendApplicationAck({ firstName, email, position }) {
-  const transporter = await getTransporter();
-  if (!transporter) return;
-  await transporter.sendMail({
-    from: FROM(),
+  await send({
     to: email,
     subject: `We received your application — ${position}`,
     html: `
@@ -244,10 +165,7 @@ async function sendApplicationAck({ firstName, email, position }) {
         </div>
         <div style="padding:40px">
           <h2 style="color:#111827;font-size:20px;margin:0 0 12px">Hi ${firstName},</h2>
-          <p style="color:#374151;line-height:1.7;margin:0 0 16px">
-            Thank you for applying for the <strong>${position}</strong> position at Merkato Store.
-            We have received your application and our team will carefully review it.
-          </p>
+          <p style="color:#374151;line-height:1.7;margin:0 0 16px">Thank you for applying for the <strong>${position}</strong> position at Merkato Store. We have received your application and our team will carefully review it.</p>
           <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;margin:24px 0">
             <p style="margin:0;font-size:14px;color:#166534;font-weight:600">What happens next?</p>
             <ul style="margin:8px 0 0;padding-left:20px;color:#374151;font-size:13px;line-height:1.8">
@@ -256,7 +174,6 @@ async function sendApplicationAck({ firstName, email, position }) {
               <li>You will receive an update either way</li>
             </ul>
           </div>
-          <p style="color:#374151;line-height:1.7;margin:0 0 8px">In the meantime, feel free to explore more about us at <a href="${process.env.CLIENT_URL}/careers" style="color:#2d7a5a">merkato.store/careers</a>.</p>
           <p style="color:#6b7280;font-size:13px;margin:24px 0 0">— Merkato Store Careers Team</p>
         </div>
         <div style="background:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb">
@@ -268,13 +185,7 @@ async function sendApplicationAck({ firstName, email, position }) {
 }
 
 async function sendOtpEmail({ name, email, otp }) {
-  const transporter = await getTransporter();
-  if (!transporter) {
-    console.warn("⚠️  SMTP not configured — skipping OTP email");
-    return;
-  }
-  await transporter.sendMail({
-    from: FROM(),
+  await send({
     to: email,
     subject: "Your Merkato Store verification code",
     html: `
@@ -285,9 +196,7 @@ async function sendOtpEmail({ name, email, otp }) {
         </div>
         <div style="padding:40px">
           <h2 style="color:#111827;font-size:20px;margin:0 0 12px">Hi ${name},</h2>
-          <p style="color:#374151;line-height:1.7;margin:0 0 24px">
-            Use the code below to verify your Merkato Store account. It expires in <strong>10 minutes</strong>.
-          </p>
+          <p style="color:#374151;line-height:1.7;margin:0 0 24px">Use the code below to verify your Merkato Store account. It expires in <strong>10 minutes</strong>.</p>
           <div style="text-align:center;margin:32px 0">
             <div style="display:inline-block;background:#f0fdf4;border:2px solid #4ade80;border-radius:16px;padding:20px 48px">
               <p style="margin:0;font-size:42px;font-weight:900;letter-spacing:12px;color:#2d7a5a;font-family:monospace">${otp}</p>
@@ -296,9 +205,7 @@ async function sendOtpEmail({ name, email, otp }) {
           <div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:14px 18px;margin:0 0 24px">
             <p style="margin:0;font-size:13px;color:#854d0e">⏱ This code expires in <strong>10 minutes</strong>. Do not share it with anyone.</p>
           </div>
-          <p style="color:#374151;font-size:13px;line-height:1.7;margin:0">
-            If you did not create a Merkato Store account, you can safely ignore this email.
-          </p>
+          <p style="color:#374151;font-size:13px;line-height:1.7;margin:0">If you did not create a Merkato Store account, you can safely ignore this email.</p>
           <p style="color:#6b7280;font-size:13px;margin:24px 0 0">— Merkato Store Team</p>
         </div>
         <div style="background:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb">
@@ -309,26 +216,10 @@ async function sendOtpEmail({ name, email, otp }) {
   });
 }
 
-async function sendApplicationReply({
-  firstName,
-  email,
-  position,
-  replyText,
-  adminName,
-  status,
-}) {
-  const transporter = await getTransporter();
-  if (!transporter) return;
-  const statusLabels = {
-    reviewing: "Under Review",
-    shortlisted: "Shortlisted 🎉",
-    rejected: "Application Update",
-    hired: "Offer Extended 🎉",
-    archived: "Application Closed",
-  };
+async function sendApplicationReply({ firstName, email, position, replyText, adminName, status }) {
+  const statusLabels = { reviewing: "Under Review", shortlisted: "Shortlisted 🎉", rejected: "Application Update", hired: "Offer Extended 🎉", archived: "Application Closed" };
   const subjectPrefix = statusLabels[status] || "Update on Your Application";
-  await transporter.sendMail({
-    from: FROM(),
+  await send({
     to: email,
     subject: `${subjectPrefix} — ${position} at Merkato Store`,
     html: `
@@ -344,7 +235,7 @@ async function sendApplicationReply({
           <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px 24px;margin:0 0 24px">
             <p style="margin:0;color:#166534;line-height:1.7;white-space:pre-wrap">${replyText}</p>
           </div>
-          <p style="color:#374151;font-size:13px;line-height:1.7">If you have any questions, reply to this email or visit our <a href="${process.env.CLIENT_URL}/contact" style="color:#2d7a5a">contact page</a>.</p>
+          <p style="color:#374151;font-size:13px;line-height:1.7">If you have any questions, visit our <a href="${process.env.CLIENT_URL}/contact" style="color:#2d7a5a">contact page</a>.</p>
           <p style="color:#6b7280;font-size:13px;margin:24px 0 0">— ${adminName}, Merkato Store Careers</p>
         </div>
         <div style="background:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb">
@@ -355,13 +246,4 @@ async function sendApplicationReply({
   });
 }
 
-module.exports = {
-  sendAcknowledgment,
-  sendReply,
-  sendPasswordReset,
-  sendProfileUpdated,
-  sendPasswordChanged,
-  sendApplicationAck,
-  sendApplicationReply,
-  sendOtpEmail,
-};
+module.exports = { sendAcknowledgment, sendReply, sendPasswordReset, sendProfileUpdated, sendPasswordChanged, sendApplicationAck, sendApplicationReply, sendOtpEmail };
