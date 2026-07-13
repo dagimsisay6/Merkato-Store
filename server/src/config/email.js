@@ -1,34 +1,47 @@
 const nodemailer = require("nodemailer");
+const dns = require("dns");
 
 let _transporter = null;
 
-function getTransporter() {
+async function getTransporter() {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) return null;
   if (_transporter) return _transporter;
   const port = Number(process.env.SMTP_PORT) || 587;
+  const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
+
+  // Resolve to IPv4 explicitly — Render free tier has no IPv6 outbound
+  let host = smtpHost;
+  try {
+    const addresses = await dns.promises.resolve4(smtpHost);
+    if (addresses.length) host = addresses[0];
+  } catch (e) {
+    console.warn("⚠️  DNS resolve4 failed, using hostname:", e.message);
+  }
+
   _transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    host,
     port,
     secure: port === 465,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-    tls: { rejectUnauthorized: false },
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    tls: { rejectUnauthorized: false, servername: smtpHost },
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
-    family: 4,
   });
-  // verify on startup so we catch misconfig early
-  _transporter.verify().then(() => console.log("✅ SMTP ready")).catch(e => { console.error("❌ SMTP error:", e.message); _transporter = null; });
+  _transporter
+    .verify()
+    .then(() => console.log("✅ SMTP ready"))
+    .catch((e) => {
+      console.error("❌ SMTP error:", e.message);
+      _transporter = null;
+    });
   return _transporter;
 }
 
 const FROM = () => `"Merkato Store Support" <${process.env.SMTP_USER}>`;
 
 async function sendAcknowledgment({ name, email, subject }) {
-  const transporter = getTransporter();
+  const transporter = await getTransporter();
   if (!transporter) {
     console.warn("⚠️  SMTP not configured — skipping acknowledgment email");
     return;
@@ -63,8 +76,14 @@ async function sendAcknowledgment({ name, email, subject }) {
   });
 }
 
-async function sendReply({ customerName, customerEmail, subject, replyText, adminName }) {
-  const transporter = getTransporter();
+async function sendReply({
+  customerName,
+  customerEmail,
+  subject,
+  replyText,
+  adminName,
+}) {
+  const transporter = await getTransporter();
   if (!transporter) {
     console.warn("⚠️  SMTP not configured — skipping reply email");
     return;
@@ -101,7 +120,7 @@ async function sendReply({ customerName, customerEmail, subject, replyText, admi
 }
 
 async function sendPasswordReset({ email, resetUrl, expiresMinutes = 15 }) {
-  const transporter = getTransporter();
+  const transporter = await getTransporter();
   if (!transporter) {
     console.warn("⚠️  SMTP not configured — skipping password reset email");
     return;
@@ -146,9 +165,14 @@ async function sendPasswordReset({ email, resetUrl, expiresMinutes = 15 }) {
 }
 
 async function sendProfileUpdated({ name, email, changedFields }) {
-  const transporter = getTransporter();
+  const transporter = await getTransporter();
   if (!transporter) return;
-  const fieldList = changedFields.map(f => `<li style="color:#374151;font-size:14px;line-height:1.8">${f}</li>`).join("");
+  const fieldList = changedFields
+    .map(
+      (f) =>
+        `<li style="color:#374151;font-size:14px;line-height:1.8">${f}</li>`,
+    )
+    .join("");
   await transporter.sendMail({
     from: FROM(),
     to: email,
@@ -175,7 +199,7 @@ async function sendProfileUpdated({ name, email, changedFields }) {
 }
 
 async function sendPasswordChanged({ name, email }) {
-  const transporter = getTransporter();
+  const transporter = await getTransporter();
   if (!transporter) return;
   const time = new Date().toUTCString();
   await transporter.sendMail({
@@ -206,7 +230,7 @@ async function sendPasswordChanged({ name, email }) {
 }
 
 async function sendApplicationAck({ firstName, email, position }) {
-  const transporter = getTransporter();
+  const transporter = await getTransporter();
   if (!transporter) return;
   await transporter.sendMail({
     from: FROM(),
@@ -244,8 +268,11 @@ async function sendApplicationAck({ firstName, email, position }) {
 }
 
 async function sendOtpEmail({ name, email, otp }) {
-  const transporter = getTransporter();
-  if (!transporter) { console.warn("⚠️  SMTP not configured — skipping OTP email"); return; }
+  const transporter = await getTransporter();
+  if (!transporter) {
+    console.warn("⚠️  SMTP not configured — skipping OTP email");
+    return;
+  }
   await transporter.sendMail({
     from: FROM(),
     to: email,
@@ -282,11 +309,24 @@ async function sendOtpEmail({ name, email, otp }) {
   });
 }
 
-async function sendApplicationReply({ firstName, email, position, replyText, adminName, status }) {
-  const transporter = getTransporter();
+async function sendApplicationReply({
+  firstName,
+  email,
+  position,
+  replyText,
+  adminName,
+  status,
+}) {
+  const transporter = await getTransporter();
   if (!transporter) return;
-  const statusLabels = { reviewing: 'Under Review', shortlisted: 'Shortlisted 🎉', rejected: 'Application Update', hired: 'Offer Extended 🎉', archived: 'Application Closed' };
-  const subjectPrefix = statusLabels[status] || 'Update on Your Application';
+  const statusLabels = {
+    reviewing: "Under Review",
+    shortlisted: "Shortlisted 🎉",
+    rejected: "Application Update",
+    hired: "Offer Extended 🎉",
+    archived: "Application Closed",
+  };
+  const subjectPrefix = statusLabels[status] || "Update on Your Application";
   await transporter.sendMail({
     from: FROM(),
     to: email,
@@ -315,4 +355,13 @@ async function sendApplicationReply({ firstName, email, position, replyText, adm
   });
 }
 
-module.exports = { sendAcknowledgment, sendReply, sendPasswordReset, sendProfileUpdated, sendPasswordChanged, sendApplicationAck, sendApplicationReply, sendOtpEmail };
+module.exports = {
+  sendAcknowledgment,
+  sendReply,
+  sendPasswordReset,
+  sendProfileUpdated,
+  sendPasswordChanged,
+  sendApplicationAck,
+  sendApplicationReply,
+  sendOtpEmail,
+};
