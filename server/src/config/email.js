@@ -18,6 +18,7 @@ function getTransporter() {
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
+    family: 4,
   });
   // verify on startup so we catch misconfig early
   _transporter.verify().then(() => console.log("✅ SMTP ready")).catch(e => { console.error("❌ SMTP error:", e.message); _transporter = null; });
