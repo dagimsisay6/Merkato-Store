@@ -5,21 +5,22 @@ let _transporter = null;
 function getTransporter() {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) return null;
   if (_transporter) return _transporter;
+  const port = Number(process.env.SMTP_PORT) || 587;
   _transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: Number(process.env.SMTP_PORT) || 465,
-    secure: Number(process.env.SMTP_PORT) !== 587,
+    port,
+    secure: port === 465,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
     tls: { rejectUnauthorized: false },
-    pool: true,          // keep connections alive
-    maxConnections: 3,
-    socketTimeout: 30000,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
   // verify on startup so we catch misconfig early
-  _transporter.verify().then(() => console.log("✅ SMTP ready")).catch(e => console.error("❌ SMTP error:", e.message));
+  _transporter.verify().then(() => console.log("✅ SMTP ready")).catch(e => { console.error("❌ SMTP error:", e.message); _transporter = null; });
   return _transporter;
 }
 
