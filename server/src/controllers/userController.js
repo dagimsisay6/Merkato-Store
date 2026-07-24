@@ -4,7 +4,6 @@ const pool = require("../config/db");
 const cloudinary = require("cloudinary").v2;
 const { sendProfileUpdated, sendPasswordChanged } = require("../config/email");
 
-// ── Profile ──────────────────────────────────────────────
 async function getProfile(req, res) {
   res.json({ user: req.user });
 }
@@ -12,10 +11,13 @@ async function getProfile(req, res) {
 async function uploadAvatar(req, res, next) {
   try {
     const { data } = req.body;
-    if (!data) return res.status(400).json({ message: "No image data provided." });
+    if (!data)
+      return res.status(400).json({ message: "No image data provided." });
     const result = await cloudinary.uploader.upload(data, {
       folder: "merkato/avatars",
-      transformation: [{ width: 256, height: 256, crop: "fill", gravity: "face" }],
+      transformation: [
+        { width: 256, height: 256, crop: "fill", gravity: "face" },
+      ],
       resource_type: "image",
     });
     const user = await users.update(req.user.id, {
@@ -34,7 +36,11 @@ async function removeAvatar(req, res, next) {
     const current = req.user.avatar;
     // Delete from Cloudinary if it's a Cloudinary URL
     if (current && current.includes("cloudinary.com")) {
-      const publicId = current.split("/").slice(-2).join("/").replace(/\.[^.]+$/, "");
+      const publicId = current
+        .split("/")
+        .slice(-2)
+        .join("/")
+        .replace(/\.[^.]+$/, "");
       await cloudinary.uploader.destroy(publicId).catch(() => {});
     }
     const user = await users.update(req.user.id, {
@@ -54,22 +60,30 @@ async function updateProfile(req, res, next) {
     const current = req.user;
     const changedFields = [];
 
-    if (!name || !name.trim()) return res.status(400).json({ message: "Full name is required." });
+    if (!name || !name.trim())
+      return res.status(400).json({ message: "Full name is required." });
 
     // Handle email change
     if (email && email.toLowerCase() !== current.email) {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        return res.status(400).json({ message: "Please enter a valid email address." });
+        return res
+          .status(400)
+          .json({ message: "Please enter a valid email address." });
       }
       const taken = await users.findByEmailExcluding(email, current.id);
-      if (taken) return res.status(400).json({ message: "That email address is already in use." });
+      if (taken)
+        return res
+          .status(400)
+          .json({ message: "That email address is already in use." });
       await users.updateEmail(current.id, email);
       changedFields.push("Email address");
     }
 
     if (name.trim() !== current.name) changedFields.push("Full name");
-    if ((phone || "") !== (current.phone || "")) changedFields.push("Phone number");
-    if (avatar && avatar !== current.avatar) changedFields.push("Profile picture");
+    if ((phone || "") !== (current.phone || ""))
+      changedFields.push("Phone number");
+    if (avatar && avatar !== current.avatar)
+      changedFields.push("Profile picture");
 
     const user = await users.update(current.id, {
       name: name.trim(),
@@ -78,12 +92,17 @@ async function updateProfile(req, res, next) {
     });
 
     // Merge email if it was changed
-    const finalUser = email && email.toLowerCase() !== current.email
-      ? { ...user, email: email.toLowerCase() }
-      : user;
+    const finalUser =
+      email && email.toLowerCase() !== current.email
+        ? { ...user, email: email.toLowerCase() }
+        : user;
 
     if (changedFields.length) {
-      sendProfileUpdated({ name: finalUser.name, email: finalUser.email, changedFields }).catch(() => {});
+      sendProfileUpdated({
+        name: finalUser.name,
+        email: finalUser.email,
+        changedFields,
+      }).catch(() => {});
     }
 
     res.json({ user: finalUser });
@@ -95,25 +114,49 @@ async function updateProfile(req, res, next) {
 async function changePassword(req, res, next) {
   try {
     const { currentPassword, newPassword } = req.body;
-    if (!currentPassword) return res.status(400).json({ message: "Current password is required." });
-    if (!newPassword || newPassword.length < 8) return res.status(400).json({ message: "New password must be at least 8 characters." });
-    if (!/[A-Z]/.test(newPassword)) return res.status(400).json({ message: "Password must contain at least one uppercase letter." });
-    if (!/[a-z]/.test(newPassword)) return res.status(400).json({ message: "Password must contain at least one lowercase letter." });
-    if (!/\d/.test(newPassword)) return res.status(400).json({ message: "Password must contain at least one number." });
-    if (!/[^A-Za-z0-9]/.test(newPassword)) return res.status(400).json({ message: "Password must contain at least one special character." });
+    if (!currentPassword)
+      return res.status(400).json({ message: "Current password is required." });
+    if (!newPassword || newPassword.length < 8)
+      return res
+        .status(400)
+        .json({ message: "New password must be at least 8 characters." });
+    if (!/[A-Z]/.test(newPassword))
+      return res.status(400).json({
+        message: "Password must contain at least one uppercase letter.",
+      });
+    if (!/[a-z]/.test(newPassword))
+      return res.status(400).json({
+        message: "Password must contain at least one lowercase letter.",
+      });
+    if (!/\d/.test(newPassword))
+      return res
+        .status(400)
+        .json({ message: "Password must contain at least one number." });
+    if (!/[^A-Za-z0-9]/.test(newPassword))
+      return res.status(400).json({
+        message: "Password must contain at least one special character.",
+      });
 
     const full = await users.findByEmail(req.user.email);
     const valid = await users.comparePassword(currentPassword, full.password);
-    if (!valid) return res.status(400).json({ message: "Current password is incorrect." });
+    if (!valid)
+      return res
+        .status(400)
+        .json({ message: "Current password is incorrect." });
 
     const isSame = await bcrypt.compare(newPassword, full.password);
-    if (isSame) return res.status(400).json({ message: "New password cannot be the same as your current password." });
+    if (isSame)
+      return res.status(400).json({
+        message: "New password cannot be the same as your current password.",
+      });
 
     await users.updatePassword(req.user.id, newPassword);
     // Clear any outstanding reset tokens
     await users.setResetToken(req.user.id, null, null);
 
-    sendPasswordChanged({ name: req.user.name, email: req.user.email }).catch(() => {});
+    sendPasswordChanged({ name: req.user.name, email: req.user.email }).catch(
+      () => {},
+    );
 
     res.json({ message: "Password updated successfully." });
   } catch (err) {
@@ -140,11 +183,11 @@ async function addAddress(req, res, next) {
 
 async function updateAddress(req, res, next) {
   try {
-    const addresses = (req.user.addresses || []).map((a) => {
-      if (String(a.id) !== req.params.id) return a;
-      if (req.body.isDefault) addresses.forEach((x) => (x.isDefault = false));
-      return { ...a, ...req.body };
-    });
+    let addresses = req.user.addresses || [];
+    if (req.body.isDefault) addresses = addresses.map((a) => ({ ...a, isDefault: false }));
+    addresses = addresses.map((a) =>
+      String(a.id) === req.params.id ? { ...a, ...req.body } : a
+    );
     const user = await users.updateAddresses(req.user.id, addresses);
     res.json({ addresses: user.addresses });
   } catch (err) {
@@ -154,7 +197,9 @@ async function updateAddress(req, res, next) {
 
 async function deleteAddress(req, res, next) {
   try {
-    const addresses = (req.user.addresses || []).filter((a) => String(a.id) !== req.params.id);
+    const addresses = (req.user.addresses || []).filter(
+      (a) => String(a.id) !== req.params.id,
+    );
     const user = await users.updateAddresses(req.user.id, addresses);
     res.json({ addresses: user.addresses });
   } catch (err) {
@@ -172,7 +217,10 @@ async function addToWishlist(req, res, next) {
     const productId = Number(req.params.productId);
     const current = req.user.wishlist || [];
     if (current.includes(productId)) return res.json({ wishlist: current });
-    const user = await users.updateWishlist(req.user.id, [...current, productId]);
+    const user = await users.updateWishlist(req.user.id, [
+      ...current,
+      productId,
+    ]);
     res.json({ wishlist: user.wishlist });
   } catch (err) {
     next(err);
@@ -211,7 +259,8 @@ async function deleteAccount(req, res, next) {
     const { currentPassword } = req.body;
     const full = await users.findByEmail(req.user.email);
     const valid = await users.comparePassword(currentPassword, full.password);
-    if (!valid) return res.status(400).json({ message: "Password is incorrect" });
+    if (!valid)
+      return res.status(400).json({ message: "Password is incorrect" });
     await pool.query("DELETE FROM users WHERE id=$1", [req.user.id]);
     res.json({ message: "Account deleted" });
   } catch (err) {
@@ -264,10 +313,23 @@ async function disableUser(req, res, next) {
 }
 
 module.exports = {
-  getProfile, updateProfile, changePassword,
-  getAddresses, addAddress, updateAddress, deleteAddress,
-  getWishlist, addToWishlist, removeFromWishlist,
-  getCart, updateCart, deleteAccount,
-  getAllUsers, getUserById, updateUserRole, disableUser,
-  uploadAvatar, removeAvatar,
+  getProfile,
+  updateProfile,
+  changePassword,
+  getAddresses,
+  addAddress,
+  updateAddress,
+  deleteAddress,
+  getWishlist,
+  addToWishlist,
+  removeFromWishlist,
+  getCart,
+  updateCart,
+  deleteAccount,
+  getAllUsers,
+  getUserById,
+  updateUserRole,
+  disableUser,
+  uploadAvatar,
+  removeAvatar,
 };
