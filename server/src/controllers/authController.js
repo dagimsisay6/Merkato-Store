@@ -156,7 +156,7 @@ async function forgotPassword(req, res, next) {
 
     await users.setResetToken(user.id, tokenHash, expires);
 
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${rawToken}`;
+    const resetUrl = `${process.env.CLIENT_URL.split(",")[0].trim()}/reset-password/${rawToken}`;
     await sendPasswordReset({ email: user.email, resetUrl, expiresMinutes: 15 });
 
     res.json({ message: SAFE_MSG });
