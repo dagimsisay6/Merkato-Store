@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Star, Heart, Truck, ShieldCheck, RotateCcw,
-  Plus, Minus, Share2, Check, Loader2,
+  Plus, Minus, Share2, Check,
 } from "lucide-react";
+import { ProductDetailSkeleton } from "@/components/ui/Skeleton";
 import { PageHeader } from "@/components/store/PageHeader";
 import { ProductCard } from "@/components/store/ProductCard";
 import { useCart, useWishlist, useAuth } from "@/lib/store-context";
@@ -58,13 +59,7 @@ export default function ProductPage({ params }) {
     wish.toggle(product.id);
   };
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    );
-  }
+  if (loading) return <ProductDetailSkeleton />;
 
   const images = product.images?.length ? product.images : [];
   const originalPrice = product.original_price ?? product.original;
