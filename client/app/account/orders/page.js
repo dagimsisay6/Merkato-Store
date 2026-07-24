@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Package, Search } from "lucide-react";
 import { fmt } from "@/lib/store-data";
 import { useAuth } from "@/lib/store-context";
+import { OrderRowSkeleton } from "@/components/ui/Skeleton";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
@@ -65,7 +66,9 @@ export default function OrdersPage() {
       </div>
 
       {loading ? (
-        <p className="py-12 text-center text-muted-foreground">Loading…</p>
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => <OrderRowSkeleton key={i} />)}
+        </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-3xl border border-border bg-card p-12 text-center">
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary">
