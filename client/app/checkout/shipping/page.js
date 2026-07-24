@@ -13,7 +13,7 @@ const BASE = process.env.NEXT_PUBLIC_API_URL;
 
 export default function ShippingPage() {
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, mounted } = useAuth();
   const [countries, setCountries] = useState([]);
   const [savedAddrs, setSavedAddrs] = useState([]);
   const [form, setForm] = useState({
@@ -31,7 +31,7 @@ export default function ShippingPage() {
   }, []);
 
   useEffect(() => {
-    if (!token) return;
+    if (!mounted || !token) return;
     fetch(`${BASE}/users/addresses`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d) => {
@@ -45,7 +45,7 @@ export default function ShippingPage() {
         }
       })
       .catch(() => {});
-  }, [token]);
+  }, [mounted, token]);
 
   function applyAddress(a) {
     setForm((f) => ({

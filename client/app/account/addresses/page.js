@@ -8,7 +8,7 @@ const BASE = process.env.NEXT_PUBLIC_API_URL;
 const EMPTY = { label: "", name: "", phone: "", line1: "", city: "", country: "", isDefault: false };
 
 export default function AddressesPage() {
-  const { token } = useAuth();
+  const { token, mounted } = useAuth();
   const [addrs, setAddrs] = useState([]);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -16,10 +16,10 @@ export default function AddressesPage() {
   const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
-    if (!token) return;
+    if (!mounted || !token) return;
     fetch(`${BASE}/users/addresses`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json()).then((d) => setAddrs(d.addresses ?? [])).catch(() => {});
-  }, [token]);
+  }, [mounted, token]);
 
   function openAdd() { setForm(EMPTY); setEditing(null); setFieldErrors({}); setAdding(true); }
   function openEdit(a) { setForm(a); setEditing(a.id); setFieldErrors({}); setAdding(true); }

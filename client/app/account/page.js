@@ -17,14 +17,14 @@ const STATUS_STYLE = {
 };
 
 export default function Dashboard() {
-  const { user, token } = useAuth();
+  const { user, token, mounted } = useAuth();
   const cart = useCart();
   const wish = useWishlist();
   const [orders, setOrders] = useState([]);
   const [addresses, setAddresses] = useState([]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!mounted || !token) return;
     async function load() {
       try {
         const [oRes, aRes] = await Promise.all([
@@ -38,7 +38,7 @@ export default function Dashboard() {
       } catch {}
     }
     load();
-  }, [token]);
+  }, [mounted, token]);
 
   const stats = [
     { icon: Package, label: "Orders",    value: orders.length,      to: "/account/orders" },

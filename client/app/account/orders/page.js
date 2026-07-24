@@ -18,14 +18,14 @@ const STATUS_STYLE = {
 };
 
 export default function OrdersPage() {
-  const { token } = useAuth();
+  const { token, mounted } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
 
   useEffect(() => {
-    if (!token) return;
+    if (!mounted || !token) return;
     async function load() {
       try {
         const res = await fetch(`${BASE}/orders`, { headers: { Authorization: `Bearer ${token}` } });
@@ -35,7 +35,7 @@ export default function OrdersPage() {
       setLoading(false);
     }
     load();
-  }, [token]);
+  }, [mounted, token]);
 
   const filtered = orders.filter((o) =>
     (filter === "all" || o.status === filter) &&
