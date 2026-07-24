@@ -6,11 +6,16 @@ import { useRouter } from "next/navigation";
 import { getCountries } from "@/lib/api";
 import { getSession, patchSession } from "@/lib/checkout-session";
 import { Alert } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, MapPin } from "lucide-react";
+import { useAuth } from "@/lib/store-context";
+
+const BASE = process.env.NEXT_PUBLIC_API_URL;
 
 export default function ShippingPage() {
   const router = useRouter();
+  const { token } = useAuth();
   const [countries, setCountries] = useState([]);
+  const [savedAddrs, setSavedAddrs] = useState([]);
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "", phone: "",
     line1: "", city: "", state: "", postal: "", country: "",
@@ -24,6 +29,37 @@ export default function ShippingPage() {
     getCountries().then((d) => setCountries(d?.countries ?? []));
     if (session.shipping) setForm(session.shipping);
   }, []);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${BASE}/users/addresses`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((d) => {
+        const addrs = d.addresses ?? [];
+        setSavedAddrs(addrs);
+        // auto-fill default address only if form is still empty
+        const session = getSession();
+        if (!session?.shipping) {
+          const def = addrs.find((a) => a.isDefault) ?? addrs[0];
+          if (def) applyAddress(def);
+        }
+      })
+      .catch(() => {});
+  }, [token]);
+
+  function applyAddress(a) {
+    setForm((f) => ({
+      ...f,
+      name: a.name ?? f.name,
+      firstName: a.name?.split(" ")[0] ?? f.firstName,
+      lastName: a.name?.split(" ").slice(1).join(" ") ?? f.lastName,
+      phone: a.phone ?? f.phone,
+      line1: a.line1 ?? f.line1,
+      city: a.city ?? f.city,
+      country: a.country ?? f.country,
+    }));
+    setErrors({});
+  }
 
   const set = (k) => (e) => {
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -64,6 +100,26 @@ export default function ShippingPage() {
 
       {submitError && (
         <Alert variant="error" title="Form incomplete" message={submitError} onDismiss={() => setSubmitError("")} />
+      )}
+
+      {savedAddrs.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Saved addresses</p>
+          <div className="flex flex-wrap gap-2">
+            {savedAddrs.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => applyAddress(a)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold hover:border-primary hover:bg-primary/5 transition"
+              >
+                <MapPin className="h-3 w-3 text-primary" />
+                {a.label} — {a.city}
+                {a.isDefault && <span className="ml-1 text-primary">(default)</span>}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
