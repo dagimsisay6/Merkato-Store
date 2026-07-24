@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, MapPin, Check, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/store-context";
+import { validatePhone, PHONE_RULES } from "@/lib/phone-rules";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 const EMPTY = { label: "", name: "", phone: "", line1: "", city: "", country: "", isDefault: false };
@@ -29,6 +30,10 @@ export default function AddressesPage() {
     if (!form.label.trim()) e.label = "Label is required.";
     if (!form.name.trim()) e.name = "Full name is required.";
     if (!form.phone.trim()) e.phone = "Phone is required.";
+    else {
+      const phoneErr = validatePhone(form.phone, form.country);
+      if (phoneErr) e.phone = phoneErr;
+    }
     if (!form.line1.trim()) e.line1 = "Street address is required.";
     if (!form.city.trim()) e.city = "City is required.";
     if (!form.country.trim()) e.country = "Country is required.";
@@ -111,7 +116,7 @@ export default function AddressesPage() {
         <form onSubmit={handleSubmit} noValidate className="space-y-4 rounded-3xl border border-border bg-card p-6">
           <h3 className="font-display text-lg font-bold">{editing ? "Edit address" : "New address"}</h3>
           <div className="grid gap-4 sm:grid-cols-2">
-            {[["label", "Label (Home, Office…)"], ["name", "Full name"], ["phone", "Phone"], ["city", "City"], ["country", "Country"]].map(([key, label]) => (
+            {[["label", "Label (Home, Office…)"], ["name", "Full name"], ["phone", "Phone"], ["city", "City"]].map(([key, label]) => (
               <div key={key}>
                 <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</label>
                 <input
@@ -119,9 +124,26 @@ export default function AddressesPage() {
                   onChange={(e) => setField(key, e.target.value)}
                   className={`mt-1 h-11 w-full rounded-full border bg-background px-4 text-sm outline-none focus:border-primary ${fieldErrors[key] ? "border-red-400" : "border-border"}`}
                 />
+                {key === "phone" && !fieldErrors.phone && form.country && PHONE_RULES[form.country] && (
+                  <p className="mt-1 text-[11px] text-muted-foreground">{PHONE_RULES[form.country].hint}</p>
+                )}
                 {fieldErrors[key] && <FieldError message={fieldErrors[key]} />}
               </div>
             ))}
+            <div>
+              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Country</label>
+              <select
+                value={form.country}
+                onChange={(e) => setField("country", e.target.value)}
+                className={`mt-1 h-11 w-full rounded-full border bg-background px-4 text-sm outline-none focus:border-primary ${fieldErrors.country ? "border-red-400" : "border-border"}`}
+              >
+                <option value="">Select country…</option>
+                {Object.entries({ NG: "Nigeria", KE: "Kenya", ET: "Ethiopia", AE: "UAE", SA: "Saudi Arabia", EG: "Egypt" }).map(([code, name]) => (
+                  <option key={code} value={code}>{name}</option>
+                ))}
+              </select>
+              {fieldErrors.country && <FieldError message={fieldErrors.country} />}
+            </div>
           </div>
           <div>
             <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Street address</label>

@@ -8,6 +8,7 @@ import { getSession, patchSession } from "@/lib/checkout-session";
 import { Alert } from "@/components/ui/alert";
 import { AlertCircle, MapPin } from "lucide-react";
 import { useAuth } from "@/lib/store-context";
+import { validatePhone, PHONE_RULES } from "@/lib/phone-rules";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL;
 
@@ -73,6 +74,10 @@ export default function ShippingPage() {
     if (!form.email.trim()) e.email = "Email address is required.";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Enter a valid email address.";
     if (!form.phone.trim()) e.phone = "Phone number is required.";
+    else {
+      const phoneErr = validatePhone(form.phone, form.country);
+      if (phoneErr) e.phone = phoneErr;
+    };
     if (!form.line1.trim()) e.line1 = "Street address is required.";
     if (!form.city.trim()) e.city = "City is required.";
     if (!form.state.trim()) e.state = "State / Region is required.";
@@ -128,7 +133,8 @@ export default function ShippingPage() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Email" type="email" value={form.email} onChange={set("email")} error={errors.email} />
-        <Field label="Phone" type="tel" value={form.phone} onChange={set("phone")} error={errors.phone} />
+        <Field label="Phone" type="tel" value={form.phone} onChange={set("phone")} error={errors.phone}
+          hint={!errors.phone && form.country && PHONE_RULES[form.country] ? PHONE_RULES[form.country].hint : ""} />
       </div>
       <Field label="Street address" value={form.line1} onChange={set("line1")} error={errors.line1} />
       <div className="grid gap-4 sm:grid-cols-3">
@@ -166,7 +172,7 @@ export default function ShippingPage() {
   );
 }
 
-function Field({ label, type = "text", value, onChange, error }) {
+function Field({ label, type = "text", value, onChange, error, hint }) {
   return (
     <div>
       <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</label>
@@ -178,6 +184,7 @@ function Field({ label, type = "text", value, onChange, error }) {
           error ? "border-red-400 focus:border-red-400" : "border-border"
         }`}
       />
+      {hint && !error && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
       {error && <FieldError message={error} />}
     </div>
   );
