@@ -141,6 +141,15 @@ CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users (email);
 CREATE INDEX IF NOT EXISTS users_otp_hash_idx ON users (otp_hash) WHERE otp_hash IS NOT NULL;
 CREATE INDEX IF NOT EXISTS users_reset_token_idx ON users (reset_password_token) WHERE reset_password_token IS NOT NULL;
 
+CREATE TABLE IF NOT EXISTS pending_signups (
+  email         TEXT PRIMARY KEY,
+  name          TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  otp_hash      TEXT NOT NULL,
+  expires_at    TIMESTAMPTZ NOT NULL,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
   id               SERIAL PRIMARY KEY,
   user_id          INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   items            JSONB NOT NULL DEFAULT '[]',

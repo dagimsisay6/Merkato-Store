@@ -143,6 +143,28 @@ async function clearResetToken(id, newPasswordHash) {
   );
 }
 
+// ── Pending signups (stored in DB so server restarts don't lose them) ────────
+async function setPendingSignup({ email, name, passwordHash, otpHash, expiresAt }) {
+  await pool.query(
+    `INSERT INTO pending_signups (email, name, password_hash, otp_hash, expires_at)
+     VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (email) DO UPDATE SET name=$2, password_hash=$3, otp_hash=$4, expires_at=$5`,
+    [email, name, passwordHash, otpHash, expiresAt]
+  );
+}
+
+async function findPendingSignup(email) {
+  const { rows } = await pool.query(
+    "SELECT * FROM pending_signups WHERE email=$1 AND expires_at > NOW()",
+    [email]
+  );
+  return rows[0] || null;
+}
+
+async function deletePendingSignup(email) {
+  await pool.query("DELETE FROM pending_signups WHERE email=$1", [email]);
+}
+
 // ── OTP ──────────────────────────────────────────────────
 async function setOtp(id, otpHash, expires) {
   await pool.query(
@@ -166,4 +188,4 @@ async function markVerified(id) {
   );
 }
 
-module.exports = { findByEmail, findById, findAll, create, createVerified, update, updateEmail, findByEmailExcluding, updateRole, updatePassword, disable, updateAddresses, updateWishlist, updateCart, comparePassword, setResetToken, findByResetToken, clearResetToken, setOtp, findByOtp, markVerified };
+module.exports = { findByEmail, findById, findAll, create, createVerified, update, updateEmail, findByEmailExcluding, updateRole, updatePassword, disable, updateAddresses, updateWishlist, updateCart, comparePassword, setResetToken, findByResetToken, clearResetToken, setOtp, findByOtp, markVerified, setPendingSignup, findPendingSignup, deletePendingSignup };
